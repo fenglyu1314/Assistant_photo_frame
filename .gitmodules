@@ -1,0 +1,6 @@
+[submodule "Reference/ESP32-S3-PhotoPainter-main"]
+	path = Reference/ESP32-S3-PhotoPainter-main
+	url = https://github.com/waveshareteam/ESP32-S3-PhotoPainter
+[submodule "Reference/ESP32-S3-PhotoPainter"]
+	path = Reference/ESP32-S3-PhotoPainter
+	url = https://github.com/fenglyu1314/ESP32-S3-PhotoPainter
