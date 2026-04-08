@@ -9,6 +9,13 @@ enabled: true
 墨水屏桌面助手：ESP32-S3 固件 + Electron 桌面伴侣应用。
 核心理念：ESP32 做「帧缓冲区显示器」，PC 端做所有渲染和智能。
 
+## 开发板
+
+- 型号: Waveshare ESP32-S3-PhotoPainter (微雪出品，带7.3寸7色墨水屏和相框)
+- 官方 Wiki: https://www.waveshare.com/wiki/ESP32-S3-PhotoPainter
+- 按键: PWR (电源/睡眠), BOOT (切换图片/下载模式), KEY (唤醒/模式切换)
+- 无独立 RST 按钮，复位方式：长按 PWR 5秒关机再单击开机，或通过串口 DTR/RTS 软复位
+
 ## 硬件规格
 
 - MCU: ESP32-S3 (240MHz 双核, 16MB Flash QIO, 8MB PSRAM OPI)

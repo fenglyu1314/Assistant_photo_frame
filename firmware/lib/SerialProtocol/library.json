@@ -1,0 +1,11 @@
+{
+    "name": "SerialProtocol",
+    "version": "1.0.0",
+    "dependencies": {},
+    "build": {
+        "srcDir": ".",
+        "flags": [
+            "-I../../include"
+        ]
+    }
+}

@@ -1,10 +1,15 @@
 #include <Arduino.h>
 #include "board_config.h"
+#include "protocol.h"
 #include "EPaperDriver.h"
+#include "BinaryProtocol.h"
 
 static ePaperPort *epd = nullptr;
+static BinaryProtocol *proto = nullptr;
 
 void setup() {
+    // Expand RX buffer BEFORE Serial.begin
+    Serial.setRxBufferSize(RX_BUFFER_SIZE);
     Serial.begin(115200);
     delay(100);
     Serial.println("[Assistant Photo Frame] Firmware starting...");
@@ -39,6 +44,10 @@ void setup() {
     epd->EPD_Display();
     Serial.println("[EPD] White screen displayed.");
 
+    // Initialize binary protocol (uses EPD's internal PSRAM frame buffer)
+    proto = new BinaryProtocol(epd, epd->EPD_GetIMGBuffer());
+    Serial.println("[Protocol] Binary protocol initialized.");
+
     // Green LED OFF: init complete
     gpio_set_level(LED_GREEN_PIN, LED_OFF);
 
@@ -46,6 +55,9 @@ void setup() {
 }
 
 void loop() {
-    // Nothing to do in Phase 1
-    delay(1000);
+    if (proto) {
+        proto->process();
+    }
+    // Small yield to prevent watchdog
+    delay(1);
 }

@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: openspec
-  version: "1.0"
+  version: "1.1"
   generatedBy: "1.2.0"
 ---
 
@@ -65,7 +65,91 @@ Archive a completed change in the experimental workflow.
 
    If user chooses sync, use Task tool (subagent_type: "general-purpose", prompt: "Use Skill tool to invoke openspec-sync-specs for change '<name>'. Delta spec analysis: <include the analyzed delta spec summary>"). Proceed to archive regardless of choice.
 
-5. **Perform the archive**
+5. **Git merge to main (Squash Merge)**
+
+   This step handles the git workflow: squash merge the feature branch into main, update the roadmap, and delete the branch.
+
+   **5a. Check current branch**
+   ```bash
+   git branch --show-current
+   ```
+
+   - **If already on `main`**: Skip merge step (branch may have already been merged). Announce: "Already on main, skipping merge."
+   - **If on a feature branch** (e.g., `feat/<name>` or `fix/<name>`): Proceed with merge.
+
+   **5b. Confirm working tree is clean**
+   ```bash
+   git status --porcelain
+   ```
+
+   **If uncommitted changes exist:**
+   - Display warning with file list
+   - Use **AskUserQuestion tool** to ask user: "Uncommitted changes found. Commit them before merge?" with options: "Commit and continue", "Stash and continue", "Cancel"
+   - If user cancels, stop the entire archive process.
+
+   **5c. Perform Squash Merge**
+
+   ```bash
+   git checkout main
+   git merge --squash <current-branch>
+   ```
+
+   **If merge conflicts occur:**
+   - Announce conflict and stop: "Merge conflict detected. Please resolve conflicts manually, then re-run archive."
+   - Do NOT attempt automatic conflict resolution.
+   - Switch back to the feature branch: `git checkout <feature-branch>`
+
+   **5d. Generate Squash Commit message**
+
+   Generate a descriptive commit message based on the change's design/spec/tasks artifacts. Format:
+   ```
+   <type>: <short description>
+
+   - <key change 1>
+   - <key change 2>
+   - <key change N>
+   ```
+
+   The `<type>` is inferred from the branch prefix:
+   - `feat/` → `feat`
+   - `fix/` → `fix`
+   - `refactor/` → `refactor`
+
+   Show the proposed commit message to the user and confirm before committing.
+
+   **5e. Commit**
+   ```bash
+   git commit -m "<generated message>"
+   ```
+
+   **5f. Update roadmap status**
+
+   Read `openspec/specs/roadmap/spec.md` and find the Phase corresponding to this change.
+
+   Update the status line from `⏳ 待开始` or `⏳ 进行中` to `✅ 已完成`.
+
+   Also update task checkboxes from `- [ ]` to `- [x]` if not already done.
+
+   Add a change record entry to the 变更记录 table:
+   ```
+   | <YYYY-MM-DD> | <Phase N> <name> 完成：<brief summary> |
+   ```
+
+   Commit the roadmap update:
+   ```bash
+   git add openspec/specs/roadmap/spec.md
+   git commit -m "docs: 更新路线图 — <Phase N> <name> 完成"
+   ```
+
+   **5g. Delete feature branch**
+
+   ```bash
+   git branch -d <feature-branch>
+   ```
+
+   Announce: "🗑️ Deleted branch: <feature-branch>"
+
+6. **Perform the archive**
 
    Create the archive directory if it doesn't exist:
    ```bash
@@ -82,13 +166,14 @@ Archive a completed change in the experimental workflow.
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
    ```
 
-6. **Display summary**
+7. **Display summary**
 
    Show archive completion summary including:
    - Change name
    - Schema that was used
    - Archive location
    - Whether specs were synced (if applicable)
+   - Git merge result (branch merged, roadmap updated, branch deleted — or skipped if already on main)
    - Note about any warnings (incomplete artifacts/tasks)
 
 **Output On Success**
@@ -100,6 +185,7 @@ Archive a completed change in the experimental workflow.
 **Schema:** <schema-name>
 **Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
 **Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
+**Git:** ✓ Squash merged feat/<name> → main, roadmap updated, branch deleted (or "Skipped — already on main")
 
 All artifacts complete. All tasks complete.
 ```
@@ -112,3 +198,7 @@ All artifacts complete. All tasks complete.
 - Show clear summary of what happened
 - If sync is requested, use openspec-sync-specs approach (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
+- **Git merge happens BEFORE archive** — if merge fails (conflicts), stop and do NOT archive
+- Always confirm the squash commit message with the user before committing
+- Never force push or perform destructive git operations
+- If already on main (e.g., branch was previously merged), skip git merge steps gracefully
