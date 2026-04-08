@@ -24,6 +24,28 @@ Implement tasks from an OpenSpec change.
 
    Always announce: "Using change: <name>" and how to override (e.g., `/opsx:apply <other>`).
 
+1.5 **Branch Guard (分支守卫)**
+
+   Before any implementation work, ensure we are on the correct development branch.
+
+   Check current git branch:
+   ```bash
+   git branch --show-current
+   ```
+
+   - **If on `main`** → Create and switch to a feature branch:
+     ```bash
+     git checkout -b feat/<change-name>
+     ```
+     Announce: "🔀 Created branch: feat/<change-name>"
+
+   - **If on `feat/<change-name>` or a branch name matching the change** → Already on the right branch, continue.
+
+   - **If on an unrelated branch** → Warn the user and ask:
+     "Currently on branch `<current>`, which doesn't match change `<change-name>`. Options: (a) switch to feat/<change-name>, (b) stay on current branch, (c) create new branch"
+
+   **NEVER implement on main.** This is a hard rule with no exceptions.
+
 2. **Check status to understand the schema**
    ```bash
    openspec status --change "<name>" --json
@@ -139,6 +161,7 @@ What would you like to do?
 ```
 
 **Guardrails**
+- NEVER write code on main branch - Branch Guard (Step 1.5) must pass before any implementation
 - Keep going through tasks until done or blocked
 - Always read context files before starting (from the apply instructions output)
 - If task is ambiguous, pause and ask before implementing
