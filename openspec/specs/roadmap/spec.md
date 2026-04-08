@@ -6,16 +6,16 @@
 
 ## Phase 1: 固件骨架
 
-**状态**: ⏳ 待开始  
+**状态**: ✅ 已完成  
 **依赖**: 无  
 **预估**: 3h
 
 创建 `firmware/` 目录，移植 EPaperDriver，搭建最小 main.cpp。
 
-- [ ] 创建 firmware/ 目录 + platformio.ini
-- [ ] 移植 EPaperDriver (官方仓库 Reference/ESP32-S3-PhotoPainter-main/)
-- [ ] board_config.h 引脚配置
-- [ ] 最小 main.cpp (初始化屏幕 + 清屏)
+- [x] 创建 firmware/ 目录 + platformio.ini
+- [x] 移植 EPaperDriver (官方仓库 Reference/ESP32-S3-PhotoPainter-main/)
+- [x] board_config.h 引脚配置
+- [x] 最小 main.cpp (初始化屏幕 + 清屏)
 
 **验收标准**: ESP32 能启动、初始化墨水屏、清屏为白色。
 
@@ -154,3 +154,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 日期 | 变更 |
 |------|------|
 | 2026-04-09 | 初始路线图，Phase 1-7 |
+| 2026-04-09 | Phase 1 固件骨架完成：EPD 驱动移植、清屏验证通过 |
