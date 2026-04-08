@@ -25,19 +25,17 @@
 
 **状态**: ⏳ 待开始  
 **依赖**: Phase 1  
-**预估**: 9h
+**预估**: 7h
 
-实现 BinaryProtocol 状态机，支持新二进制帧 + 旧文本协议兼容。
+实现 BinaryProtocol 状态机，支持二进制帧收发和分块传输。
 
 - [ ] protocol.h 协议常量定义 (MAGIC, CMD, 帧结构)
 - [ ] CRC-16/CCITT 工具函数
 - [ ] BinaryProtocol 接收状态机
-- [ ] 协议自动识别 (首字节分流: 0x02→文本, 0xEB→二进制)
 - [ ] 分块传输处理 (BEGIN→DATA×47→END)
-- [ ] 旧文本协议兼容 (TextProtocol)
-- [ ] JSON 兼容模式 (CMD=0x10) + PING/PONG
+- [ ] PING/PONG 心跳
 
-**验收标准**: ESP32 能接收二进制帧写入 PSRAM 并刷屏；旧 Python companion 仍可正常通信。
+**验收标准**: ESP32 能接收二进制帧写入 PSRAM 并刷屏；PING/PONG 心跳正常。
 
 ---
 
@@ -65,16 +63,16 @@
 **依赖**: 无 (可与 Phase 2/3 并行)  
 **预估**: 5.5h
 
-移植 Python img2epd.py 的核心算法到 TypeScript，编写单元测试。
+实现 TypeScript 量化引擎 (参考 Python img2epd.py 算法思路)，编写单元测试。
 
 - [ ] palette.ts 调色板定义
 - [ ] quantizer.ts 最近邻量化
 - [ ] quantizer.ts Floyd-Steinberg 抖动
 - [ ] 饱和度预处理 (enhanceSaturation)
 - [ ] buffer-encoder.ts 物理缓冲区编码 (rotation=3)
-- [ ] 单元测试 (对比 Python 基准输出, 允许 ≤0.1% 像素偏差)
+- [ ] 单元测试 (验证量化/编码正确性)
 
-**验收标准**: TypeScript 量化引擎输出与 Python 版逐字节一致 (≤0.1% 偏差)。
+**验收标准**: TypeScript 量化引擎对标准测试图片的输出视觉正确，6色量化+抖动效果符合预期。
 
 ---
 
@@ -155,3 +153,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 |------|------|
 | 2026-04-09 | 初始路线图，Phase 1-7 |
 | 2026-04-09 | Phase 1 固件骨架完成：EPD 驱动移植、清屏验证通过 |
+| 2026-04-09 | 去除旧兼容性负担：删除 TextProtocol、协议自动识别、旧 Python companion 兼容目标；量化引擎验收改为视觉正确而非逐字节匹配 Python |

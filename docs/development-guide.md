@@ -61,8 +61,7 @@ Assistant_photo_frame/
 │   │   └── main.cpp
 │   ├── lib/
 │   │   ├── EPaperDriver/     # 墨水屏 SPI 驱动 (来自官方仓库)
-│   │   └── SerialProtocol/   # 串口协议 (旧文本 + 新二进制)
-│   │       ├── TextProtocol.h/.cpp
+│   │   └── SerialProtocol/   # 串口协议 (二进制帧)
 │   │       └── BinaryProtocol.h/.cpp
 │   ├── include/
 │   │   ├── board_config.h    # 硬件引脚配置
@@ -180,19 +179,17 @@ npm run package             # 打包安装程序
 
 ### Phase 2: 固件二进制协议
 
-实现 BinaryProtocol 状态机，支持新二进制帧 + 旧文本协议兼容。
+实现 BinaryProtocol 状态机，支持二进制帧收发和分块传输。
 
 | 任务 | 预估 |
 |------|------|
 | protocol.h 协议常量定义 | 0.5h |
 | CRC-16/CCITT 工具函数 | 1h |
-| BinaryProtocol 接收状态机 | 2h |
-| 协议自动识别 (首字节分流) | 1.5h |
+| BinaryProtocol 接收状态机 | 2.5h |
 | 分块传输处理 (BEGIN→DATA→END) | 2h |
-| 旧文本协议兼容 (TextProtocol) | 1h |
-| JSON 兼容模式 (CMD=0x10) + PING/PONG | 1h |
+| PING/PONG 心跳 | 1h |
 
-**产出**: ESP32 能接收二进制帧，写入 PSRAM，触发刷屏。旧 Python 工具仍可正常通信。
+**产出**: ESP32 能接收二进制帧，写入 PSRAM，触发刷屏。PING/PONG 心跳正常。
 
 **依赖**: Phase 1
 
@@ -374,7 +371,7 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 模块 | 测试内容 | 工具 |
 |------|---------|------|
 | palette.ts | 调色板定义完整性，索引4为null | Vitest |
-| quantizer.ts | 已知输入 → 对比 Python 基准输出 | Vitest |
+| quantizer.ts | 已知输入 → 验证量化/抖动效果 | Vitest |
 | buffer-encoder.ts | 坐标变换 + 4-bit 打包正确性 | Vitest |
 | binary-protocol.ts | 帧构建/解析/CRC 校验 | Vitest |
 
@@ -384,7 +381,7 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 |---------|------|
 | 串口模拟脚本 | Python 脚本模拟 PC 端发送二进制帧 |
 | 手动验证 | 实际刷屏效果检查 |
-| 协议兼容性 | 旧 Python companion 仍能正常通信 |
+| PING/PONG | 心跳响应验证 |
 
 ### 6.3 端到端联调
 
