@@ -23,17 +23,17 @@
 
 ## Phase 2: 固件二进制协议
 
-**状态**: ⏳ 待开始  
+**状态**: ✅ 已完成  
 **依赖**: Phase 1  
 **预估**: 7h
 
 实现 BinaryProtocol 状态机，支持二进制帧收发和分块传输。
 
-- [ ] protocol.h 协议常量定义 (MAGIC, CMD, 帧结构)
-- [ ] CRC-16/CCITT 工具函数
-- [ ] BinaryProtocol 接收状态机
-- [ ] 分块传输处理 (BEGIN→DATA×47→END)
-- [ ] PING/PONG 心跳
+- [x] protocol.h 协议常量定义 (MAGIC, CMD, 帧结构)
+- [x] CRC-16/CCITT 工具函数
+- [x] BinaryProtocol 接收状态机
+- [x] 分块传输处理 (BEGIN→DATA×47→END)
+- [x] PING/PONG 心跳
 
 **验收标准**: ESP32 能接收二进制帧写入 PSRAM 并刷屏；PING/PONG 心跳正常。
 
@@ -154,3 +154,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-09 | 初始路线图，Phase 1-7 |
 | 2026-04-09 | Phase 1 固件骨架完成：EPD 驱动移植、清屏验证通过 |
 | 2026-04-09 | 去除旧兼容性负担：删除 TextProtocol、协议自动识别、旧 Python companion 兼容目标；量化引擎验收改为视觉正确而非逐字节匹配 Python |
+| 2026-04-09 | Phase 2 固件二进制协议完成：BinaryProtocol 状态机 + 分块传输 + 心跳验证通过 |
