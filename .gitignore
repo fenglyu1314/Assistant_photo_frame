@@ -27,5 +27,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Reference — 通过 Git Submodule 管理，不需要额外忽略
-# 7.3inch-e-Paper-(E)-user-manual.pdf 直接提交
+# Reference — 仅本地参考，不提交到仓库
+Reference/
+
+# Workspace config (local only)
+*.code-workspace
