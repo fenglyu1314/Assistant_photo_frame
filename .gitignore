@@ -1,11 +1,29 @@
 # PlatformIO
 .pio/
 .vscode/
+
+# Codebuddy
 .codebuddy/
+
+# Node.js / Electron
+node_modules/
+dist/
+dist-electron/
+out/
+*.log
 
 # Build outputs
 *.pyc
 __pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
 
 # Reference files
 Reference/
