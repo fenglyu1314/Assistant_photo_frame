@@ -1,0 +1,11 @@
+# PlatformIO
+.pio/
+.vscode/
+.codebuddy/
+
+# Build outputs
+*.pyc
+__pycache__/
+
+# Reference files
+Reference/
