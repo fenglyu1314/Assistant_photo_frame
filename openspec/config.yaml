@@ -1,20 +1,24 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  项目名称：Assistant Photo Frame
+  定位：墨水屏桌面助手（ESP32-S3 固件 + Electron 桌面伴侣应用）
+  硬件：ESP32-S3 (16MB Flash, 8MB PSRAM) + Waveshare 7.3" 6色 e-Paper (索引4空位)
+  分辨率：物理 800×480, 逻辑 480×800 (竖屏 rotation=3)
+  架构：PC 端渲染+量化+传输 → ESP32 接收帧缓冲区刷屏
+  技术栈：
+    - 固件：PlatformIO + Arduino Framework (C/C++)
+    - 桌面：Electron 28+ / TypeScript / Vue 3 / electron-vite / Tailwind CSS
+  通信：USB CDC 115200 baud, 二进制帧协议 (MAGIC 0xEB0D)
+  设计参考：Reference/ESP32-S3-PhotoPainter/docs/design-electron-epd-companion.md
+  可复用模块：EPaperDriver, BinaryProtocol, board_config.h (来自 Reference/ESP32-S3-PhotoPainter/)
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - 保持提案简洁，聚焦功能变更
+    - 必须列出影响的文件和模块（firmware / companion）
+    - 注明是否涉及协议变更
+  tasks:
+    - 每个任务应可在 2 小时内完成
+    - 固件任务和桌面应用任务分开列出
+    - 编译烧录步骤标注为用户手动执行
