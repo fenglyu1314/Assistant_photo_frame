@@ -1,0 +1,66 @@
+---
+description: 项目总览 — 硬件规格、系统架构、技术栈、开发约定
+alwaysApply: true
+enabled: true
+---
+
+# Assistant Photo Frame
+
+墨水屏桌面助手：ESP32-S3 固件 + Electron 桌面伴侣应用。
+核心理念：ESP32 做「帧缓冲区显示器」，PC 端做所有渲染和智能。
+
+## 硬件规格
+
+- MCU: ESP32-S3 (240MHz 双核, 16MB Flash QIO, 8MB PSRAM OPI)
+- 屏幕: Waveshare 7.3" 7色 e-Paper (EPD_7IN3F)
+- 物理分辨率: 800×480, 逻辑分辨率: 480×800 (竖屏, rotation=3)
+- 帧缓冲区: 192,000 字节 (800/2 × 480, 4-bit packed, PSRAM)
+- 通信: USB CDC 串口 115200 baud
+
+## GPIO 引脚
+
+- 按键: GPIO4 (USER/翻页), GPIO0 (BOOT/请求刷新)
+- LED: GPIO42 (绿), GPIO45 (红)
+- EPD SPI: MOSI=11, SCK=10, CS=9, DC=8, RST=12, BUSY=13
+
+## 颜色系统
+
+6色屏，硬件索引 4 为空位（官方枚举直接跳过，无 ColorOrange 定义）：
+BLACK=0, WHITE=1, YELLOW=2, RED=3, **(4=空位)**, BLUE=5, GREEN=6
+- 官方 `ColorSelection` 枚举中 `ColorBlue = 5` 显式赋值跳过 4
+- 所有量化/显示代码只使用 6 色，索引 4 不参与任何处理
+- 调色板数组中索引 4 用 `null` 占位，遍历时 `continue` 跳过
+
+## 系统架构
+
+```
+Electron App ──(二进制帧协议/USB CDC)──→ ESP32 固件
+  HTML/CSS渲染 → 截屏 → 6色量化+FS抖动     接收 → PSRAM → SPI刷屏
+  → 编码192KB → 分块传输(47块×4KB)
+```
+
+## 技术栈
+
+- 固件: PlatformIO + Arduino Framework, C/C++
+- 桌面: Electron 28+ / TypeScript / Vue 3 / electron-vite / serialport / Tailwind CSS
+
+## 项目结构
+
+- `firmware/` — ESP32 固件 (PlatformIO)
+- `companion/` — Electron 桌面伴侣应用
+- `Reference/` — 参考资料（不参与构建）
+- `openspec/` — 项目规格管理
+
+## 参考资料优先级
+
+1. **官方仓库** `Reference/ESP32-S3-PhotoPainter-main/` — 首要代码参考，驱动和显示逻辑以此为准
+2. **设计文档** `Reference/ESP32-S3-PhotoPainter/docs/design-electron-epd-companion.md` — 架构蓝图
+3. **旧探索项目** `Reference/ESP32-S3-PhotoPainter/` — 仅参考协议设计和架构思路；其墨水屏驱动代码存在颜色显示异常，**不可直接复用驱动/显示相关代码**
+
+## 开发约定
+
+- 固件遵循 Arduino 风格 (setup/loop)
+- 编译(`pio run`)和烧录(`pio run -t upload`)由用户手动执行，AI 不执行
+- 颜色索引必须与 Waveshare 官方枚举一致
+- 墨水屏驱动代码以官方仓库实现为准，不使用旧项目的 EPaperDriver
+- Reference/ 下的代码仅参考，不直接包含进构建

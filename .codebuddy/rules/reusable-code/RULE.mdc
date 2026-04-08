@@ -1,0 +1,43 @@
+---
+description: 参考代码来源与可复用模块清单，创建新固件或协议代码时参考
+alwaysApply: false
+enabled: true
+---
+
+# 参考代码资产
+
+## ⚠️ 重要：参考来源优先级
+
+1. **官方仓库** `Reference/ESP32-S3-PhotoPainter-main/` — **首要参考**，驱动和显示代码以此为准
+2. **旧探索项目** `Reference/ESP32-S3-PhotoPainter/` — 旧项目的墨水屏驱动存在颜色显示异常 bug，**驱动/显示相关代码不可信**，仅参考协议和架构思路
+
+## 从官方仓库参考 (首选)
+
+来源: `Reference/ESP32-S3-PhotoPainter-main/`
+
+| 内容 | 说明 |
+|------|------|
+| 墨水屏驱动 | 官方 EPD 初始化序列、SPI 时序、刷屏流程，以此为准 |
+| 引脚定义 | 硬件 GPIO 映射 |
+| 颜色处理 | 官方色彩量化和显示逻辑 |
+
+## 从旧项目选择性参考 (需谨慎)
+
+来源: `Reference/ESP32-S3-PhotoPainter/`
+
+| 模块 | 路径 | 可参考内容 |
+|------|------|-----------|
+| BinaryProtocol | `lib/SerialProtocol/BinaryProtocol.h` | 二进制帧协议状态机、CRC-16 — 协议逻辑可参考 |
+| SerialProtocol | `lib/SerialProtocol/SerialProtocol.h` | STX/ETX 文本帧协议思路 |
+| board_config.h | `include/board_config.h` | GPIO 引脚定义（与官方对照确认） |
+| platformio.ini | `platformio.ini` | 构建配置结构参考 |
+
+## 不参考
+
+- `lib/EPaperDriver/` — 旧项目自研驱动，**颜色显示异常**，用官方驱动替代
+- `include/AssistantUI.h` — ESP32 端 UI 渲染，新架构不需要
+- `src/main.cpp` 的多页面系统和显示逻辑 — 新固件精简为帧缓冲区显示器
+
+## 设计参考文档
+
+`Reference/ESP32-S3-PhotoPainter/docs/design-electron-epd-companion.md` — 新项目的架构蓝图（仅设计思路，不涉及驱动代码）

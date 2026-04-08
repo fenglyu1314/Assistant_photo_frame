@@ -1,0 +1,51 @@
+---
+description: 二进制帧传输协议与量化引擎的技术细节，开发固件通信或图像处理时参考
+alwaysApply: false
+enabled: true
+---
+
+# 二进制帧协议
+
+- 帧结构: MAGIC(0xEB0D, 2B) + CMD(1B) + LENGTH(4B LE) + DATA(N) + CRC16-CCITT(2B)
+- CMD 类型: BEGIN=0x01, DATA=0x02, END=0x03, JSON=0x10, PING=0xFF
+- CRC 多项式: 0x1021, 初值: 0xFFFF
+- 帧缓冲区传输: 47 块 × 4096 字节，最后一块尾部补零至 4096
+
+## 传输流程
+
+1. PC → ESP32: BEGIN 帧 (携带 JSON 元数据: 宽高、总字节数)
+2. PC → ESP32: 47 个 DATA 帧 (每帧 4KB payload)
+3. PC → ESP32: END 帧 (触发刷屏)
+4. ESP32 → PC: 每帧 ACK/NACK (JSON 响应)
+
+## 心跳
+
+- PC 定期发 PING (0xFF)，ESP32 回 PONG JSON
+
+# 量化引擎 (PC端)
+
+## 6色调色板 (RGB)
+
+| 索引 | 颜色   | R   | G   | B   |
+|------|--------|-----|-----|-----|
+| 0    | BLACK  | 0   | 0   | 0   |
+| 1    | WHITE  | 255 | 255 | 255 |
+| 2    | YELLOW | 255 | 255 | 0   |
+| 3    | RED    | 255 | 0   | 0   |
+| 4    | (空位) | —   | —   | —   |
+| 5    | BLUE   | 0   | 0   | 255 |
+| 6    | GREEN  | 0   | 255 | 0   |
+
+调色板数组索引 4 用 null 占位，量化遍历时跳过。
+
+## 算法参数
+
+- Floyd-Steinberg 抖动扩散矩阵: 右 7/16, 左下 3/16, 下 5/16, 右下 1/16
+- 饱和度增强: 1.4×
+- 最近邻搜索: 欧氏距离平方 (无需开根号)
+
+## 帧缓冲区编码
+
+- rotation=3 坐标变换: `buf_x = logical_y`, `buf_y = (WIDTH-1) - logical_x`
+- 4-bit packed: 高4位=偶数列像素索引, 低4位=奇数列像素索引
+- 缓冲区偏移: `offset = buf_y * (PHYS_WIDTH/2) + buf_x/2`

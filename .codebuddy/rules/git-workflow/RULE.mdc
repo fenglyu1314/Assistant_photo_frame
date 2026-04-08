@@ -1,0 +1,50 @@
+---
+description: Git 开发工作流规则 — 分支策略、合入规范、Commit 约定
+alwaysApply: true
+enabled: true
+---
+
+# Git 工作流规则
+
+## 核心原则
+
+- **禁止在 main 分支上直接写代码**，所有代码变更必须走分支
+- 每个 Phase 对应一个 OpenSpec Change，也对应一个分支（三者一一映射）
+
+## 分支操作
+
+1. **开始新功能**: 从 main 创建分支 `feat/<描述>`
+2. **开发中**: 在分支上小步提交，可以试错
+3. **完成前**: 自测验证（固件 `pio run`，桌面 `npm run build` + `npm run test`）
+4. **合入**: 使用 Squash Merge 压缩为一个干净 commit
+5. **合入后**: 更新路线图状态 + 删除开发分支 + Archive Change
+
+## 分支命名
+
+- 新功能: `feat/<描述>` (如 `feat/firmware-skeleton`)
+- 修复: `fix/<描述>`
+- 重构: `refactor/<描述>`
+
+## Commit 消息
+
+格式: `<type>: <简短描述>`
+
+Type: feat / fix / refactor / test / docs / chore
+
+Squash Merge 合入主干时使用更完整的描述，列出关键变更点。
+
+## 合入前必须
+
+- 固件编译通过 / 桌面 build + test 通过
+- 无遗留调试代码
+
+## 禁止
+
+- 在 main 上直接写代码
+- 一个分支做多个不相关功能
+- 合入未编译/未测试的代码
+- Force push 到 main
+
+## 完整参考
+
+详见 `docs/git-workflow.md`
