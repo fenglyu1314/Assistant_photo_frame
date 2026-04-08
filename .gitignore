@@ -2,8 +2,10 @@
 .pio/
 .vscode/
 
-# Codebuddy
-.codebuddy/
+# Codebuddy — 共享项目规则和技能，忽略个人数据
+.codebuddy/memories
+.codebuddy/teams
+.codebuddy/automations
 
 # Node.js / Electron
 node_modules/
@@ -25,5 +27,5 @@ Thumbs.db
 *.swp
 *.swo
 
-# Reference files
-Reference/
+# Reference — 通过 Git Submodule 管理，不需要额外忽略
+# 7.3inch-e-Paper-(E)-user-manual.pdf 直接提交

@@ -65,6 +65,7 @@ npm run package        # 打包安装程序
 ## 文档
 
 - [开发指南](docs/development-guide.md) — 目录结构、路线图、工作流策略
+- [Git 工作流](docs/git-workflow.md) — 分支策略、合入规则、Commit 规范
 - [架构设计](Reference/ESP32-S3-PhotoPainter/docs/design-electron-epd-companion.md) — 详细架构设计文档
 
 ## 参考资料
