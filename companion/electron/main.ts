@@ -3,11 +3,18 @@ import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import { SerialManager, type TransferProgress } from './serial/serial-manager'
+import { ConfigStore } from './data/config-store'
+import { DataManager } from './data/data-manager'
+import { OffscreenRenderer } from './renderer/offscreen'
+import { RenderPipeline, type StageProgress } from './pipeline/render-pipeline'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
 let serialManager: SerialManager | null = null
+let dataManager: DataManager | null = null
+let offscreenRenderer: OffscreenRenderer | null = null
+let renderPipeline: RenderPipeline | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -16,7 +23,7 @@ function createWindow(): void {
     center: true,
     show: false,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
@@ -171,13 +178,143 @@ function setupSerialIPC(): void {
   })
 }
 
+// Phase 6: 数据管理 + 渲染管线初始化
+async function setupDataAndPipeline(): Promise<void> {
+  // Initialize config store (async, loads electron-store ESM module)
+  await ConfigStore.init()
+
+  // Initialize DataManager
+  dataManager = new DataManager()
+
+  // Initialize OffscreenRenderer
+  offscreenRenderer = new OffscreenRenderer()
+
+  // Initialize RenderPipeline
+  renderPipeline = new RenderPipeline(dataManager, offscreenRenderer, serialManager!)
+
+  // Forward pipeline stage progress to renderer
+  renderPipeline.on('stage-progress', (progress: StageProgress) => {
+    mainWindow?.webContents.send('pipeline:stage-progress', progress)
+  })
+
+  renderPipeline.on('transfer-progress', (progress: TransferProgress) => {
+    mainWindow?.webContents.send('serial:transfer-progress', progress)
+  })
+}
+
+// Phase 6: 数据管理 IPC 通道
+function setupDataIPC(): void {
+  // --- Todo CRUD ---
+
+  ipcMain.handle('data:get-todos', async () => {
+    return dataManager!.getTodos()
+  })
+
+  ipcMain.handle('data:add-todo', async (_event, args: { text?: string }) => {
+    if (!args?.text || typeof args.text !== 'string' || args.text.trim() === '') {
+      return { success: false, error: 'Missing or empty text' }
+    }
+    return dataManager!.addTodo(args.text.trim())
+  })
+
+  ipcMain.handle('data:toggle-todo', async (_event, args: { id?: string }) => {
+    if (!args?.id || typeof args.id !== 'string') {
+      return { success: false, error: 'Missing or invalid id' }
+    }
+    const result = await dataManager!.toggleTodo(args.id)
+    if (!result) {
+      return { success: false, error: 'Todo not found' }
+    }
+    return result
+  })
+
+  ipcMain.handle('data:remove-todo', async (_event, args: { id?: string }) => {
+    if (!args?.id || typeof args.id !== 'string') {
+      return { success: false, error: 'Missing or invalid id' }
+    }
+    const removed = await dataManager!.removeTodo(args.id)
+    if (!removed) {
+      return { success: false, error: 'Todo not found' }
+    }
+    return { success: true }
+  })
+
+  // --- Event CRUD ---
+
+  ipcMain.handle('data:get-events', async () => {
+    return dataManager!.getUpcomingEvents()
+  })
+
+  ipcMain.handle('data:add-event', async (_event, args: { title?: string; date?: string; time?: string }) => {
+    if (!args?.title || typeof args.title !== 'string' || args.title.trim() === '') {
+      return { success: false, error: 'Missing or empty title' }
+    }
+    if (!args?.date || typeof args.date !== 'string') {
+      return { success: false, error: 'Missing or invalid date' }
+    }
+    return dataManager!.addEvent(args.title.trim(), args.date, args.time)
+  })
+
+  ipcMain.handle('data:remove-event', async (_event, args: { id?: string }) => {
+    if (!args?.id || typeof args.id !== 'string') {
+      return { success: false, error: 'Missing or invalid id' }
+    }
+    const removed = await dataManager!.removeEvent(args.id)
+    if (!removed) {
+      return { success: false, error: 'Event not found' }
+    }
+    return { success: true }
+  })
+
+  // --- Config ---
+
+  ipcMain.handle('config:get', async (_event, args: { key?: string }) => {
+    if (!args?.key || typeof args.key !== 'string') {
+      return { success: false, error: 'Missing or invalid key' }
+    }
+    const store = await ConfigStore.getStore()
+    return store.get(args.key)
+  })
+
+  ipcMain.handle('config:set', async (_event, args: { key?: string; value?: unknown }) => {
+    if (!args?.key || typeof args.key !== 'string') {
+      return { success: false, error: 'Missing or invalid key' }
+    }
+    const store = await ConfigStore.getStore()
+    store.set(args.key, args.value)
+    return { success: true }
+  })
+}
+
+// Phase 6: 渲染管线 IPC 通道
+function setupPipelineIPC(): void {
+  ipcMain.handle('pipeline:execute', async () => {
+    if (!renderPipeline) {
+      return { success: false, error: 'Pipeline not initialized' }
+    }
+    return renderPipeline.execute()
+  })
+
+  ipcMain.handle('pipeline:status', async () => {
+    if (!renderPipeline) {
+      return { running: false }
+    }
+    return renderPipeline.getStatus()
+  })
+}
+
 // 应用启动
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createWindow()
   createTray()
 
   // Phase 5: 初始化串口通信
   setupSerialIPC()
+
+  // Phase 6: 初始化数据管理 + 渲染管线
+  await setupDataAndPipeline()
+  setupDataIPC()
+  setupPipelineIPC()
 
   // Task 4.1: 开机自启（仅打包模式）
   if (app.isPackaged) {

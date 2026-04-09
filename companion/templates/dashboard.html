@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=480, height=800, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="epd-design-system.css">
+  <style>
+    /* ===== Layout ===== */
+    .dashboard {
+      display: flex;
+      flex-direction: column;
+      width: 480px;
+      height: 800px;
+      padding: var(--epd-spacing-lg);
+      gap: var(--epd-spacing-md);
+    }
+
+    /* ===== Header: Date & Time ===== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: var(--epd-spacing-md);
+      border-bottom: 3px solid var(--epd-black);
+    }
+
+    .date-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .date-main {
+      font-size: var(--epd-font-size-xl);
+      font-weight: var(--epd-font-weight-bold);
+      color: var(--epd-black);
+      line-height: 1.2;
+    }
+
+    .date-weekday {
+      font-size: var(--epd-font-size-md);
+      color: var(--epd-black);
+    }
+
+    .time-display {
+      font-size: var(--epd-font-size-xxl);
+      font-weight: var(--epd-font-weight-bold);
+      color: var(--epd-black);
+      line-height: 1;
+    }
+
+    /* ===== Weather ===== */
+    .weather-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--epd-spacing-md);
+      background: var(--epd-white);
+      border: 2px solid var(--epd-blue);
+    }
+
+    .weather-current {
+      display: flex;
+      align-items: center;
+      gap: var(--epd-spacing-md);
+    }
+
+    .weather-temp {
+      font-size: 36px;
+      font-weight: var(--epd-font-weight-bold);
+      color: var(--epd-black);
+      line-height: 1;
+    }
+
+    .weather-temp-unit {
+      font-size: var(--epd-font-size-lg);
+      vertical-align: super;
+    }
+
+    .weather-desc {
+      font-size: var(--epd-font-size-sm);
+      color: var(--epd-black);
+    }
+
+    .weather-detail {
+      font-size: var(--epd-font-size-xs);
+      color: var(--epd-black);
+    }
+
+    .weather-forecast {
+      display: flex;
+      gap: var(--epd-spacing-md);
+    }
+
+    .forecast-day {
+      text-align: center;
+      font-size: var(--epd-font-size-xs);
+    }
+
+    .forecast-day .temp-range {
+      font-weight: var(--epd-font-weight-bold);
+    }
+
+    .weather-placeholder {
+      padding: var(--epd-spacing-md);
+      border: 2px dashed var(--epd-gray);
+      text-align: center;
+      font-size: var(--epd-font-size-sm);
+      color: var(--epd-gray);
+    }
+
+    /* ===== Section headers ===== */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: var(--epd-spacing-sm);
+      margin-top: var(--epd-spacing-sm);
+      margin-bottom: var(--epd-spacing-xs);
+    }
+
+    .section-title {
+      font-size: var(--epd-font-size-lg);
+      font-weight: var(--epd-font-weight-bold);
+      color: var(--epd-black);
+    }
+
+    .section-icon {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+      text-align: center;
+      font-size: var(--epd-font-size-md);
+    }
+
+    .section-count {
+      font-size: var(--epd-font-size-xs);
+      color: var(--epd-gray);
+    }
+
+    /* ===== Todo list ===== */
+    .todo-list {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: var(--epd-spacing-sm);
+      padding: var(--epd-spacing-xs) 0;
+      border-bottom: 1px solid var(--epd-light-gray);
+      font-size: var(--epd-font-size-sm);
+    }
+
+    .todo-checkbox {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--epd-black);
+      flex-shrink: 0;
+    }
+
+    .todo-checkbox.done {
+      background: var(--epd-black);
+      position: relative;
+    }
+
+    .todo-checkbox.done::after {
+      content: '✓';
+      color: var(--epd-white);
+      font-size: 12px;
+      position: absolute;
+      top: -2px;
+      left: 1px;
+    }
+
+    .todo-text {
+      flex: 1;
+      color: var(--epd-black);
+    }
+
+    .todo-text.done {
+      text-decoration: line-through;
+      color: var(--epd-gray);
+    }
+
+    .empty-hint {
+      padding: var(--epd-spacing-lg) 0;
+      text-align: center;
+      font-size: var(--epd-font-size-sm);
+      color: var(--epd-gray);
+    }
+
+    /* ===== Events list ===== */
+    .events-list {
+      overflow: hidden;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: center;
+      gap: var(--epd-spacing-sm);
+      padding: var(--epd-spacing-xs) 0;
+      border-bottom: 1px solid var(--epd-light-gray);
+      font-size: var(--epd-font-size-sm);
+    }
+
+    .event-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--epd-red);
+      flex-shrink: 0;
+    }
+
+    .event-date-badge {
+      font-size: var(--epd-font-size-xs);
+      color: var(--epd-blue);
+      min-width: 45px;
+      flex-shrink: 0;
+    }
+
+    .event-title {
+      flex: 1;
+      color: var(--epd-black);
+    }
+
+    .event-time {
+      font-size: var(--epd-font-size-xs);
+      color: var(--epd-gray);
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      text-align: center;
+      font-size: var(--epd-font-size-xs);
+      color: var(--epd-light-gray);
+      padding-top: var(--epd-spacing-xs);
+      border-top: 1px solid var(--epd-light-gray);
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard" id="dashboard">
+    <!-- Header: Date & Time -->
+    <div class="header">
+      <div class="date-section">
+        <div class="date-main" id="dateMain"></div>
+        <div class="date-weekday" id="dateWeekday"></div>
+      </div>
+      <div class="time-display" id="timeDisplay"></div>
+    </div>
+
+    <!-- Weather -->
+    <div id="weatherContainer"></div>
+
+    <!-- Todos -->
+    <div class="section-header">
+      <span class="section-icon">☐</span>
+      <span class="section-title">待办事项</span>
+      <span class="section-count" id="todoCount"></span>
+    </div>
+    <div class="todo-list" id="todoList"></div>
+
+    <!-- Events -->
+    <div class="section-header">
+      <span class="section-icon">◉</span>
+      <span class="section-title">日程安排</span>
+      <span class="section-count" id="eventCount"></span>
+    </div>
+    <div class="events-list" id="eventList"></div>
+
+    <!-- Footer -->
+    <div class="footer">Assistant Photo Frame</div>
+  </div>
+
+  <script>
+    // Parse data from URL query parameter
+    function getData() {
+      try {
+        const params = new URLSearchParams(location.search)
+        const raw = params.get('data')
+        if (!raw) return null
+        return JSON.parse(decodeURIComponent(raw))
+      } catch (e) {
+        console.error('Failed to parse data:', e)
+        return null
+      }
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr)
+      return `${d.getMonth() + 1}/${d.getDate()}`
+    }
+
+    function render(data) {
+      if (!data) {
+        document.getElementById('dateMain').textContent = '--'
+        document.getElementById('dateWeekday').textContent = '数据加载失败'
+        document.getElementById('timeDisplay').textContent = '--:--'
+        return
+      }
+
+      // Date & Time
+      const dt = data.dateTime
+      document.getElementById('dateMain').textContent =
+        `${dt.year}年${dt.month}月${dt.day}日`
+      document.getElementById('dateWeekday').textContent = dt.weekday
+      document.getElementById('timeDisplay').textContent = dt.time
+
+      // Weather
+      const weatherEl = document.getElementById('weatherContainer')
+      if (data.weather && data.weather.current) {
+        const w = data.weather.current
+        const forecast = data.weather.forecast || []
+
+        let forecastHtml = ''
+        forecast.slice(0, 3).forEach(day => {
+          forecastHtml += `
+            <div class="forecast-day">
+              <div>${formatDate(day.date)}</div>
+              <div>${day.textDay}</div>
+              <div class="temp-range">${day.tempMin}~${day.tempMax}°</div>
+            </div>`
+        })
+
+        weatherEl.innerHTML = `
+          <div class="weather-section">
+            <div class="weather-current">
+              <div>
+                <div class="weather-temp">${w.temp}<span class="weather-temp-unit">°C</span></div>
+                <div class="weather-desc">${w.text}</div>
+                <div class="weather-detail">湿度 ${w.humidity}% · ${w.windDir} ${w.windScale}级</div>
+              </div>
+            </div>
+            <div class="weather-forecast">${forecastHtml}</div>
+          </div>`
+      } else {
+        weatherEl.innerHTML = '<div class="weather-placeholder">天气未配置 — 请设置 API Key 和城市</div>'
+      }
+
+      // Todos
+      const todos = data.todos || []
+      const todoCountEl = document.getElementById('todoCount')
+      const todoListEl = document.getElementById('todoList')
+      const done = todos.filter(t => t.done).length
+      todoCountEl.textContent = `${done}/${todos.length}`
+
+      if (todos.length === 0) {
+        todoListEl.innerHTML = '<div class="empty-hint">暂无待办事项</div>'
+      } else {
+        todoListEl.innerHTML = todos.map(t => `
+          <div class="todo-item">
+            <div class="todo-checkbox ${t.done ? 'done' : ''}"></div>
+            <span class="todo-text ${t.done ? 'done' : ''}">${escapeHtml(t.text)}</span>
+          </div>
+        `).join('')
+      }
+
+      // Events
+      const events = data.events || []
+      const eventCountEl = document.getElementById('eventCount')
+      const eventListEl = document.getElementById('eventList')
+      eventCountEl.textContent = `${events.length}项`
+
+      if (events.length === 0) {
+        eventListEl.innerHTML = '<div class="empty-hint">近期无日程安排</div>'
+      } else {
+        eventListEl.innerHTML = events.map(e => `
+          <div class="event-item">
+            <div class="event-dot"></div>
+            <span class="event-date-badge">${formatDate(e.date)}</span>
+            <span class="event-title">${escapeHtml(e.title)}</span>
+            ${e.time ? `<span class="event-time">${e.time}</span>` : ''}
+          </div>
+        `).join('')
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+
+    // Initialize
+    const data = getData()
+    render(data)
+  </script>
+</body>
+</html>

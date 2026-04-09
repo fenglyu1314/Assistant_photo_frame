@@ -6,13 +6,18 @@ import pkg from './package.json'
 
 export default defineConfig({
   main: {
+    resolve: {
+      alias: {
+        '@core': resolve('src/core')
+      }
+    },
     build: {
       lib: {
         entry: resolve('electron/main.ts')
       },
       externalizeDeps: true,
       rollupOptions: {
-        external: ['serialport']
+        external: ['serialport', 'electron-store']
       }
     }
   },

@@ -305,9 +305,11 @@ void BinaryProtocol::handleEndFrame() {
     Serial.println("[INF] Transfer complete, refreshing display...");
 
     // Trigger EPD refresh
-    // Note: framebuf_ points to EPD's internal DispBuffer_, so data is already in place
+    // Note: framebuf_ points to EPD's internal DispBuffer_, data is already in
+    // physical (800×480) format — the PC companion performs rotation=3 transform
+    // during encoding, so we use EPD_DisplayRaw() to skip firmware-side rotation.
     if (epd_ != nullptr) {
-        epd_->EPD_Display();
+        epd_->EPD_DisplayRaw();
         sendDisplayDone();
         Serial.println("[INF] Display refreshed.");
     } else {

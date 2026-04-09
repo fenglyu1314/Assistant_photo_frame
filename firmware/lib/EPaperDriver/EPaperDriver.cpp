@@ -381,6 +381,15 @@ void ePaperPort::EPD_Display() {
     EPD_TurnOnDisplay();
 }
 
+void ePaperPort::EPD_DisplayRaw() {
+    // Send DispBuffer_ directly without rotation.
+    // Used when the buffer already contains data in physical (800x480) format,
+    // e.g. pre-rotated data received from the PC companion app.
+    EPD_SendCommand(0x10);
+    EPD_SendBuffer(DispBuffer_, display_len_);
+    EPD_TurnOnDisplay();
+}
+
 void ePaperPort::Set_Rotation(uint8_t rot) {
     rotation_ = rot;
     ESP_LOGI(TAG_, "Rotation set to %d", rotation_);

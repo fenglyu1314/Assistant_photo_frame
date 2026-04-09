@@ -1,0 +1,82 @@
+/**
+ * EPD Design System for 7.3" 7-Color e-Paper
+ *
+ * Optimized for Floyd-Steinberg dithering and 6-color palette.
+ * All UI skeleton elements should use pure palette colors only.
+ */
+
+/* =========================================================================
+ * 1. EPD Palette — Exact hardware colors
+ * ========================================================================= */
+
+:root {
+  /* Primary 6 colors (hardware palette) */
+  --epd-black:   #000000;  /* Index 0 */
+  --epd-white:   #ffffff;  /* Index 1 */
+  --epd-yellow:  #ffff00;  /* Index 2 */
+  --epd-red:     #ff0000;  /* Index 3 */
+  --epd-blue:    #0000ff;  /* Index 5 */
+  --epd-green:   #00ff00;  /* Index 6 */
+
+  /* Dither-friendly auxiliary colors
+   * These intermediate values dither well with the 6-color palette */
+  --epd-gray:          #808080;  /* Dithers to BLACK + WHITE pattern */
+  --epd-light-gray:    #c0c0c0;  /* Dithers to mostly WHITE + some BLACK */
+  --epd-dark-gray:     #404040;  /* Dithers to mostly BLACK + some WHITE */
+  --epd-light-yellow:  #ffff80;  /* Dithers to YELLOW + WHITE */
+  --epd-light-red:     #ff8080;  /* Dithers to RED + WHITE */
+  --epd-light-blue:    #8080ff;  /* Dithers to BLUE + WHITE */
+  --epd-light-green:   #80ff80;  /* Dithers to GREEN + WHITE */
+
+  /* Spacing tokens */
+  --epd-spacing-xs:  4px;
+  --epd-spacing-sm:  8px;
+  --epd-spacing-md:  12px;
+  --epd-spacing-lg:  16px;
+  --epd-spacing-xl:  24px;
+
+  /* Typography tokens */
+  --epd-font-family: system-ui, 'Microsoft YaHei', Arial, sans-serif;
+  --epd-font-size-xs:  12px;
+  --epd-font-size-sm:  14px;
+  --epd-font-size-md:  16px;
+  --epd-font-size-lg:  20px;
+  --epd-font-size-xl:  28px;
+  --epd-font-size-xxl: 48px;
+
+  --epd-line-height:   1.4;
+  --epd-font-weight-normal: 400;
+  --epd-font-weight-bold:   700;
+}
+
+/* =========================================================================
+ * 2. Anti-aliasing — Disable for sharp pixel output
+ * ========================================================================= */
+
+* {
+  -webkit-font-smoothing: none;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+/* =========================================================================
+ * 3. Base reset
+ * ========================================================================= */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--epd-font-family);
+  font-size: var(--epd-font-size-md);
+  line-height: var(--epd-line-height);
+  color: var(--epd-black);
+  background: var(--epd-white);
+  width: 480px;
+  height: 800px;
+  overflow: hidden;
+}

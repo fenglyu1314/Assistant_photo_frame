@@ -26,6 +26,7 @@ public:
     void EPD_Init();
     void EPD_DispClear(uint8_t color);
     void EPD_Display();
+    void EPD_DisplayRaw();   // Send DispBuffer_ directly (no rotation) for pre-rotated data
     void Set_Rotation(uint8_t rot);
     uint8_t* EPD_GetIMGBuffer();
 

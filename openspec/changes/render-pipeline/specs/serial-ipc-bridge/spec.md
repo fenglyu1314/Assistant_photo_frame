@@ -1,4 +1,4 @@
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 串口操作 IPC 通道
 主进程必须注册 ipcMain.handle 处理器，将串口操作暴露给渲染进程。所有串口操作必须在主进程执行，渲染进程通过 `window.api.invoke()` 调用。
@@ -26,6 +26,8 @@
 #### Scenario: serial:status 通道
 - **WHEN** 渲染进程调用 `window.api.invoke('serial:status')`
 - **THEN** 主进程必须返回当前串口状态 `{ connected: boolean, portPath?: string, deviceInfo?: object }`
+
+## ADDED Requirements
 
 ### Requirement: 渲染管线 IPC 通道
 主进程必须注册渲染管线相关的 IPC 处理器，让渲染进程可以触发刷屏和获取管线状态。

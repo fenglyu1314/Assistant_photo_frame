@@ -2,11 +2,15 @@
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
   "include": [
     "electron.vite.config.*",
-    "electron/**/*"
+    "electron/**/*",
+    "src/core/**/*"
   ],
   "compilerOptions": {
     "composite": true,
     "types": ["electron-vite/node"],
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "@core/*": ["./src/core/*"]
+    }
   }
 }
