@@ -34,7 +34,7 @@ export const DEFAULT_CHUNK_SIZE = 4096
 /** Timeout values (milliseconds) */
 export const CHUNK_ACK_TIMEOUT_MS = 5000 // Per-chunk ACK wait
 export const TRANSFER_TIMEOUT_MS = 60000 // Entire transfer must complete
-export const DISPLAY_DONE_TIMEOUT_MS = 30000 // EPD refresh ~15-20s
+export const DISPLAY_DONE_TIMEOUT_MS = 60000 // 7-color EPD refresh can take 25-35s+
 export const PING_TIMEOUT_MS = 3000 // PING/PONG timeout
 
 /** Retry limits */

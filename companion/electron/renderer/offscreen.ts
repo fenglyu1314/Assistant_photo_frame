@@ -29,6 +29,7 @@ export interface RenderResult {
   rgba?: Uint8Array
   width?: number
   height?: number
+  previewDataUrl?: string  // PNG data URL for UI preview
   error?: string
 }
 
@@ -106,6 +107,10 @@ export class OffscreenRenderer {
         }
       }
 
+      // Generate PNG data URL for UI preview
+      const pngBuffer = image.toPNG()
+      const previewDataUrl = `data:image/png;base64,${pngBuffer.toString('base64')}`
+
       // Get RGBA bitmap
       const bitmap = image.toBitmap()
       const rgba = new Uint8Array(bitmap.buffer, bitmap.byteOffset, bitmap.byteLength)
@@ -123,7 +128,8 @@ export class OffscreenRenderer {
         success: true,
         rgba,
         width: RENDER_WIDTH,
-        height: RENDER_HEIGHT
+        height: RENDER_HEIGHT,
+        previewDataUrl
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)

@@ -7,9 +7,44 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "build:dist": "electron-vite build && electron-builder --win",
     "postinstall": "electron-rebuild",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "build": {
+    "appId": "com.assistant-photo-frame.app",
+    "productName": "Assistant Photo Frame",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "resources/icon.png",
+      "uninstallerIcon": "resources/icon.png"
+    },
+    "extraResources": [
+      {
+        "from": "templates/",
+        "to": "templates/",
+        "filter": ["**/*"]
+      }
+    ],
+    "files": [
+      "out/**/*",
+      "!node_modules/**/*",
+      "node_modules/serialport/**/*",
+      "node_modules/@serialport/**/*",
+      "node_modules/electron-store/**/*",
+      "node_modules/electron-updater/**/*"
+    ],
+    "npmRebuild": true
   },
   "dependencies": {
     "electron-store": "^11.0.2",

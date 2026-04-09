@@ -115,24 +115,26 @@
 
 ## Phase 7: UI 与打包
 
-**状态**: ⏳ 待开始  
+**状态**: ✅ 已完成  
 **依赖**: Phase 6  
 **预估**: 10.5h
 
 实现用户界面、编辑器、打包发布。
 
-- [ ] App.vue 左右分栏布局
-- [ ] SerialPanel.vue 串口选择 + 连接状态
-- [ ] TodoEditor.vue 待办编辑器
-- [ ] EventEditor.vue 日程编辑器
-- [ ] WeatherPanel.vue 天气设置
-- [ ] EpdPreview.vue 墨水屏预览
-- [ ] IPC 通信集成
-- [ ] 定时后台刷新
-- [ ] electron-builder 打包配置 (NSIS 安装器)
-- [ ] 端到端联调验证
+- [x] App.vue 左右分栏布局
+- [x] SerialPanel.vue 串口选择 + 连接状态
+- [x] TodoEditor.vue 待办编辑器
+- [x] EventEditor.vue 日程编辑器
+- [x] WeatherPanel.vue 天气设置
+- [x] EpdPreview.vue 墨水屏预览（已知问题：预览图显示 bug 待后续修复）
+- [x] IPC 通信集成
+- [x] 定时后台刷新
+- [x] electron-builder 打包配置 (NSIS 安装器)
+- [x] 端到端联调验证（核心功能验证通过：串口连接、待办/日程 CRUD、手动刷屏、数据同步到墨水屏）
 
 **验收标准**: 完整可安装的桌面应用，双击即用。
+
+**已知问题**: UI 右侧预览图不显示（数据已正确渲染并传输到墨水屏，仅 UI 预览回显未生效）。
 
 ---
 
@@ -159,3 +161,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-09 | Phase 4 量化引擎完成：palette.ts 6色调色板、quantizer.ts 最近邻/FS抖动/饱和度增强、buffer-encoder.ts 坐标变换+打包，54 个单元测试全部通过 |
 | 2026-04-09 | Phase 5 串口通信完成：binary-protocol.ts CRC/帧构建、response-parser.ts 响应解析状态机、serial-manager.ts 串口管理/自动重连/帧传输、IPC 桥接层，89 个单元测试全部通过 |
 | 2026-04-10 | Phase 6 渲染管线完成：DataManager 数据层、OffscreenRenderer 离屏渲染、EPD CSS 设计系统与仪表盘模板、RenderPipeline 管线编排、固件 EPD_DisplayRaw() 修复双重旋转，完整链路验证通过 |
+| 2026-04-10 | Phase 7 UI 与打包完成：App.vue 分栏布局、SerialPanel/TodoEditor/EventEditor/WeatherPanel/EpdPreview 五大 UI 组件、定时后台刷新、electron-builder NSIS 打包、DISPLAY_DONE 超时修复、天气 API Host 支持，89 个单元测试全部通过。已知问题：UI 预览图不显示 |

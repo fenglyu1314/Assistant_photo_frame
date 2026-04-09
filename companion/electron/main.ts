@@ -5,6 +5,7 @@ import { autoUpdater } from 'electron-updater'
 import { SerialManager, type TransferProgress } from './serial/serial-manager'
 import { ConfigStore } from './data/config-store'
 import { DataManager } from './data/data-manager'
+import { WeatherApi } from './data/weather-api'
 import { OffscreenRenderer } from './renderer/offscreen'
 import { RenderPipeline, type StageProgress } from './pipeline/render-pipeline'
 
@@ -282,7 +283,39 @@ function setupDataIPC(): void {
     }
     const store = await ConfigStore.getStore()
     store.set(args.key, args.value)
+
+    // Task 4.2: If refresh interval changed, restart timer
+    if (args.key === 'refresh' && args.value && typeof args.value === 'object') {
+      const refreshConfig = args.value as { intervalMinutes?: number }
+      if (refreshConfig.intervalMinutes && refreshTimer) {
+        startRefreshTimer(refreshConfig.intervalMinutes)
+      }
+    }
+
     return { success: true }
+  })
+
+  // --- City Search (GeoAPI) ---
+
+  ipcMain.handle('weather:search-city', async (_event, args: { query?: string }) => {
+    if (!args?.query || typeof args.query !== 'string' || args.query.trim() === '') {
+      return { success: false, error: 'Missing or empty query', results: [] }
+    }
+    try {
+      const weatherConfig = await ConfigStore.get('weather')
+      if (!weatherConfig.apiKey || !weatherConfig.apiHost) {
+        return { success: false, error: '请先配置 API Key 和 API Host', results: [] }
+      }
+      const results = await WeatherApi.searchCity(
+        args.query.trim(),
+        weatherConfig.apiKey,
+        weatherConfig.apiHost
+      )
+      return { success: true, results }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return { success: false, error: msg, results: [] }
+    }
   })
 }
 
@@ -303,6 +336,55 @@ function setupPipelineIPC(): void {
   })
 }
 
+// Phase 7: 定时刷新管理器
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
+function startRefreshTimer(intervalMinutes: number): void {
+  stopRefreshTimer()
+  const intervalMs = intervalMinutes * 60 * 1000
+  console.log(`[RefreshTimer] Starting with interval: ${intervalMinutes} minutes`)
+  refreshTimer = setInterval(async () => {
+    if (!renderPipeline) return
+    console.log('[RefreshTimer] Executing scheduled pipeline...')
+    const result = await renderPipeline.execute()
+    if (!result.success) {
+      console.warn('[RefreshTimer] Pipeline failed:', result.error)
+    } else {
+      console.log(`[RefreshTimer] Pipeline completed in ${result.durationMs}ms`)
+    }
+  }, intervalMs)
+}
+
+function stopRefreshTimer(): void {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+    console.log('[RefreshTimer] Stopped')
+  }
+}
+
+function setupScheduledRefresh(): void {
+  // Listen to serial state changes to start/stop timer
+  serialManager!.on('state-changed', async (state: { connected: boolean }) => {
+    if (state.connected) {
+      // Device connected: execute once immediately, then start timer
+      console.log('[RefreshTimer] Device connected, executing initial refresh...')
+      if (renderPipeline) {
+        const result = await renderPipeline.execute()
+        if (result.success) {
+          console.log(`[RefreshTimer] Initial refresh completed in ${result.durationMs}ms`)
+        }
+      }
+      // Start periodic timer
+      const config = await ConfigStore.get('refresh')
+      startRefreshTimer(config.intervalMinutes)
+    } else {
+      // Device disconnected: stop timer
+      stopRefreshTimer()
+    }
+  })
+}
+
 // 应用启动
 app.whenReady().then(async () => {
   createWindow()
@@ -315,6 +397,9 @@ app.whenReady().then(async () => {
   await setupDataAndPipeline()
   setupDataIPC()
   setupPipelineIPC()
+
+  // Phase 7: 定时刷新
+  setupScheduledRefresh()
 
   // Task 4.1: 开机自启（仅打包模式）
   if (app.isPackaged) {
@@ -334,6 +419,8 @@ app.whenReady().then(async () => {
 // 确保 before-quit 设置 isQuitting 标志
 app.on('before-quit', () => {
   isQuitting = true
+  // 停止定时刷新
+  stopRefreshTimer()
   // 清理串口资源
   serialManager?.destroy()
 })

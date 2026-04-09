@@ -26,6 +26,7 @@ export interface PipelineResult {
   success: boolean
   error?: string
   durationMs?: number
+  previewDataUrl?: string  // PNG data URL for UI preview
 }
 
 export interface PipelineStatus {
@@ -105,6 +106,9 @@ export class RenderPipeline extends EventEmitter {
 
       const rgba = renderResult.rgba
 
+      // Save preview data URL for UI display
+      const previewDataUrl = renderResult.previewDataUrl
+
       // Stage 3: Enhance saturation
       this.emitStage(STAGES.ENHANCING)
       const enhanced = enhanceSaturation(rgba, EPD_LOGICAL_W, EPD_LOGICAL_H)
@@ -138,7 +142,7 @@ export class RenderPipeline extends EventEmitter {
       this.lastRun = new Date().toISOString()
       this.lastError = undefined
 
-      return { success: true, durationMs }
+      return { success: true, durationMs, previewDataUrl }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       const error = `管线异常: ${message}`

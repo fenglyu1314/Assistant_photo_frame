@@ -26,6 +26,7 @@ export interface CalendarEvent {
 
 export interface WeatherConfig {
   apiKey: string
+  apiHost: string  // QWeather API Host (e.g. abc123.def.qweatherapi.com)
   location: string // QWeather city/location ID
   unit: 'metric'
 }
@@ -48,6 +49,7 @@ export interface AppConfig {
 const CONFIG_DEFAULTS: AppConfig = {
   weather: {
     apiKey: '',
+    apiHost: '',
     location: '',
     unit: 'metric'
   },

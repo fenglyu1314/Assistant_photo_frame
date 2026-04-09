@@ -175,13 +175,13 @@ export class DataManager {
   private async fetchWeatherSafe(): Promise<WeatherData | null> {
     try {
       const weatherConfig = await ConfigStore.get('weather')
-      if (!weatherConfig.apiKey || !weatherConfig.location) {
+      if (!weatherConfig.apiKey || !weatherConfig.location || !weatherConfig.apiHost) {
         return null
       }
 
       const [current, forecast] = await Promise.all([
-        WeatherApi.getCurrent(weatherConfig.location, weatherConfig.apiKey),
-        WeatherApi.getForecast(weatherConfig.location, weatherConfig.apiKey)
+        WeatherApi.getCurrent(weatherConfig.location, weatherConfig.apiKey, weatherConfig.apiHost),
+        WeatherApi.getForecast(weatherConfig.location, weatherConfig.apiKey, weatherConfig.apiHost)
       ])
 
       return { current, forecast }
