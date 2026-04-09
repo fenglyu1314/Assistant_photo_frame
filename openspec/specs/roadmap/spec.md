@@ -138,10 +138,49 @@
 
 ---
 
+## Phase 8: 预览与同步解耦
+
+**状态**: 🔲 未开始  
+**依赖**: Phase 7  
+**预估**: 5h
+
+修复 UI 预览 Bug，将「预览」和「同步到设备」解耦为两个独立操作。
+
+- [ ] 修复 EpdPreview.vue 预览图不显示的 Bug
+- [ ] RenderPipeline 拆分：`renderPreview()` (Stage 1-5) + `syncToDevice()` (Stage 6)
+- [ ] 缓存渲染结果，避免同步时重复渲染
+- [ ] 新增 IPC 通道：`pipeline:render-preview` + `pipeline:sync-device`
+- [ ] EpdPreview.vue 拆分为「刷新预览」和「同步到相框」两个按钮
+- [ ] 预览在渲染完成后立即显示（不等待设备同步）
+- [ ] 「同步到相框」按钮仅在预览完成且设备已连接时可用
+- [ ] 定时刷新逻辑适配：定时触发预览 + 可选自动同步
+
+**验收标准**: 点击「刷新预览」仅渲染并显示预览图，点击「同步到相框」才将帧数据发送到设备；两个操作完全独立。
+
+---
+
+## Phase 9: 文字清晰度优化
+
+**状态**: 🔲 未开始  
+**依赖**: Phase 8  
+**预估**: 4h
+
+优化量化算法，解决 Floyd-Steinberg 抖动导致文字笔画中出现杂色的问题。
+
+- [ ] 文字区域保护：对接近纯黑/纯白的像素直接映射，跳过抖动误差扩散
+- [ ] 阈值判断：像素到 BLACK/WHITE 的色差 < threshold 时直接量化，不参与 FS 扩散
+- [ ] 可选：CIELab 色差替代 RGB 欧氏距离，提升感知准确性
+- [ ] 可选：调色板 RGB 值微调（匹配实际墨水屏显示效果）
+- [ ] 新增文字保护相关单元测试
+
+**验收标准**: 纯黑/白文字笔画清晰无杂色，非文字区域（图标、色块）仍保持正常的抖动混色效果。
+
+---
+
 ## 依赖关系
 
 ```
-Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 ──→ Phase 7
+Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 ──→ Phase 7 ──→ Phase 8 ──→ Phase 9
                  │                                    ↑
                  └────────────────────────────────────┘
                        (Phase 4 可与 2/3 并行)
@@ -162,3 +201,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-09 | Phase 5 串口通信完成：binary-protocol.ts CRC/帧构建、response-parser.ts 响应解析状态机、serial-manager.ts 串口管理/自动重连/帧传输、IPC 桥接层，89 个单元测试全部通过 |
 | 2026-04-10 | Phase 6 渲染管线完成：DataManager 数据层、OffscreenRenderer 离屏渲染、EPD CSS 设计系统与仪表盘模板、RenderPipeline 管线编排、固件 EPD_DisplayRaw() 修复双重旋转，完整链路验证通过 |
 | 2026-04-10 | Phase 7 UI 与打包完成：App.vue 分栏布局、SerialPanel/TodoEditor/EventEditor/WeatherPanel/EpdPreview 五大 UI 组件、定时后台刷新、electron-builder NSIS 打包、DISPLAY_DONE 超时修复、天气 API Host 支持，89 个单元测试全部通过。已知问题：UI 预览图不显示 |
+| 2026-04-10 | 新增 Phase 8 (预览与同步解耦) + Phase 9 (文字清晰度优化) |
