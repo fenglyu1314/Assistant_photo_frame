@@ -95,19 +95,19 @@
 
 ## Phase 6: 渲染管线
 
-**状态**: ⏳ 待开始  
+**状态**: ✅ 已完成  
 **依赖**: Phase 4, Phase 5  
 **预估**: 9h
 
 实现离屏渲染、HTML 模板、完整数据流。
 
-- [ ] offscreen.ts 离屏渲染窗口 (480×800, capturePage)
-- [ ] epd-design-system.css CSS 设计系统 (六色精确 + 抖动色)
-- [ ] dashboard.html 仪表盘模板
-- [ ] data-manager.ts 数据管理 (todos/events/日期)
-- [ ] weather-api.ts QWeather API 封装
-- [ ] config-store.ts 配置持久化 (electron-store)
-- [ ] 完整渲染管线集成 (数据→渲染→截屏→量化→编码→发送→刷屏)
+- [x] offscreen.ts 离屏渲染窗口 (480×800, capturePage)
+- [x] epd-design-system.css CSS 设计系统 (六色精确 + 抖动色)
+- [x] dashboard.html 仪表盘模板
+- [x] data-manager.ts 数据管理 (todos/events/日期)
+- [x] weather-api.ts QWeather API 封装
+- [x] config-store.ts 配置持久化 (electron-store)
+- [x] 完整渲染管线集成 (数据→渲染→截屏→量化→编码→发送→刷屏)
 
 **验收标准**: 完整链路跑通，墨水屏显示仪表盘画面。
 
@@ -158,3 +158,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-09 | Phase 3 Companion 脚手架完成：Electron 应用骨架、窗口管理、系统托盘、开机自启、自动更新 |
 | 2026-04-09 | Phase 4 量化引擎完成：palette.ts 6色调色板、quantizer.ts 最近邻/FS抖动/饱和度增强、buffer-encoder.ts 坐标变换+打包，54 个单元测试全部通过 |
 | 2026-04-09 | Phase 5 串口通信完成：binary-protocol.ts CRC/帧构建、response-parser.ts 响应解析状态机、serial-manager.ts 串口管理/自动重连/帧传输、IPC 桥接层，89 个单元测试全部通过 |
+| 2026-04-10 | Phase 6 渲染管线完成：DataManager 数据层、OffscreenRenderer 离屏渲染、EPD CSS 设计系统与仪表盘模板、RenderPipeline 管线编排、固件 EPD_DisplayRaw() 修复双重旋转，完整链路验证通过 |
