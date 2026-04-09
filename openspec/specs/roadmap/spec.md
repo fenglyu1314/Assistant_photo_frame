@@ -78,16 +78,16 @@
 
 ## Phase 5: 串口通信
 
-**状态**: ⏳ 待开始  
+**状态**: ✅ 已完成  
 **依赖**: Phase 2, Phase 3  
 **预估**: 6h
 
 实现串口管理和二进制协议编码端。
 
-- [ ] serial-manager.ts 自动扫描 ESP32 (VID=0x303A) + 连接管理
-- [ ] binary-protocol.ts 帧编码器 + CRC
-- [ ] 帧缓冲区分块发送 + ACK/NAK 逐块确认
-- [ ] 设备状态监听 + 自动重连
+- [x] serial-manager.ts 自动扫描 ESP32 (VID=0x303A) + 连接管理
+- [x] binary-protocol.ts 帧编码器 + CRC
+- [x] 帧缓冲区分块发送 + ACK/NAK 逐块确认
+- [x] 设备状态监听 + 自动重连
 
 **验收标准**: Electron 能发现 ESP32、建立连接、发送帧缓冲区、ESP32 正确刷屏。
 
@@ -157,3 +157,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-09 | Phase 2 固件二进制协议完成：BinaryProtocol 状态机 + 分块传输 + 心跳验证通过 |
 | 2026-04-09 | Phase 3 Companion 脚手架完成：Electron 应用骨架、窗口管理、系统托盘、开机自启、自动更新 |
 | 2026-04-09 | Phase 4 量化引擎完成：palette.ts 6色调色板、quantizer.ts 最近邻/FS抖动/饱和度增强、buffer-encoder.ts 坐标变换+打包，54 个单元测试全部通过 |
+| 2026-04-09 | Phase 5 串口通信完成：binary-protocol.ts CRC/帧构建、response-parser.ts 响应解析状态机、serial-manager.ts 串口管理/自动重连/帧传输、IPC 桥接层，89 个单元测试全部通过 |
