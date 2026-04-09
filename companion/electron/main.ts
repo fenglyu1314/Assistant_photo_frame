@@ -1,11 +1,13 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
+import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
+import { SerialManager, type TransferProgress } from './serial/serial-manager'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
+let serialManager: SerialManager | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -119,10 +121,63 @@ function setupAutoUpdater(): void {
   autoUpdater.checkForUpdates()
 }
 
+// Phase 5: 串口 IPC 桥接
+function setupSerialIPC(): void {
+  serialManager = new SerialManager()
+
+  // --- Request/Response handlers (ipcMain.handle) ---
+
+  ipcMain.handle('serial:scan', async () => {
+    return serialManager!.scan()
+  })
+
+  ipcMain.handle('serial:connect', async (_event, args: { path: string }) => {
+    if (!args?.path) {
+      return { success: false, error: 'Missing port path' }
+    }
+    return serialManager!.connect(args.path)
+  })
+
+  ipcMain.handle('serial:disconnect', async () => {
+    return serialManager!.disconnect()
+  })
+
+  ipcMain.handle('serial:send-buffer', async (_event, args: { buffer: Uint8Array }) => {
+    if (!args?.buffer) {
+      return { success: false, error: 'Missing buffer data' }
+    }
+    return serialManager!.sendFrameBuffer(
+      args.buffer,
+      (progress: TransferProgress) => {
+        // Forward progress to renderer
+        mainWindow?.webContents.send('serial:transfer-progress', progress)
+      }
+    )
+  })
+
+  ipcMain.handle('serial:ping', async () => {
+    return serialManager!.ping()
+  })
+
+  ipcMain.handle('serial:status', async () => {
+    return serialManager!.getStatus()
+  })
+
+  // --- Event forwarding (main → renderer push) ---
+
+  serialManager.on('state-changed', (state) => {
+    mainWindow?.webContents.send('serial:state-changed', state)
+    console.log('[SerialManager] State changed:', state)
+  })
+}
+
 // 应用启动
 app.whenReady().then(() => {
   createWindow()
   createTray()
+
+  // Phase 5: 初始化串口通信
+  setupSerialIPC()
 
   // Task 4.1: 开机自启（仅打包模式）
   if (app.isPackaged) {
@@ -142,6 +197,8 @@ app.whenReady().then(() => {
 // 确保 before-quit 设置 isQuitting 标志
 app.on('before-quit', () => {
   isQuitting = true
+  // 清理串口资源
+  serialManager?.destroy()
 })
 
 app.on('window-all-closed', () => {
