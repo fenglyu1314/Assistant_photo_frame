@@ -29,10 +29,24 @@ export interface PipelineResult {
   previewDataUrl?: string  // PNG data URL for UI preview
 }
 
+export interface PreviewResult {
+  success: boolean
+  error?: string
+  durationMs?: number
+  previewDataUrl?: string  // PNG data URL for UI preview
+}
+
+export interface SyncResult {
+  success: boolean
+  error?: string
+  durationMs?: number
+}
+
 export interface PipelineStatus {
   running: boolean
   lastRun?: string      // ISO timestamp
   lastError?: string
+  hasCache: boolean      // Whether a cached frame buffer is available for sync
 }
 
 export interface StageProgress {
@@ -65,6 +79,7 @@ export class RenderPipeline extends EventEmitter {
   private running: boolean = false
   private lastRun?: string
   private lastError?: string
+  private cachedBuffer: Buffer | null = null
 
   constructor(
     dataManager: DataManager,
@@ -78,10 +93,10 @@ export class RenderPipeline extends EventEmitter {
   }
 
   /**
-   * Execute the complete render pipeline.
-   * Returns result with success/error and timing info.
+   * Render preview only (Stage 1-5).
+   * Caches the encoded buffer and preview image for later sync.
    */
-  async execute(): Promise<PipelineResult> {
+  async renderPreview(): Promise<PreviewResult> {
     // Concurrency guard
     if (this.running) {
       return { success: false, error: 'Pipeline already running' }
@@ -105,8 +120,6 @@ export class RenderPipeline extends EventEmitter {
       }
 
       const rgba = renderResult.rgba
-
-      // Save preview data URL for UI display
       const previewDataUrl = renderResult.previewDataUrl
 
       // Stage 3: Enhance saturation
@@ -121,10 +134,49 @@ export class RenderPipeline extends EventEmitter {
       this.emitStage(STAGES.ENCODING)
       const buffer = encodeToPhysicalBuffer(indices)
 
+      // Cache frame buffer for syncToDevice()
+      this.cachedBuffer = Buffer.from(buffer)
+
+      // Preview done (no sending stage)
+      this.emitStage(STAGES.DONE)
+      const durationMs = Date.now() - startTime
+      this.lastRun = new Date().toISOString()
+      this.lastError = undefined
+
+      return { success: true, durationMs, previewDataUrl }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const error = `预览渲染异常: ${message}`
+      this.lastError = error
+      return { success: false, error }
+    } finally {
+      this.running = false
+    }
+  }
+
+  /**
+   * Sync cached frame buffer to device (Stage 6 only).
+   * Must call renderPreview() first to populate the cache.
+   */
+  async syncToDevice(): Promise<SyncResult> {
+    // Check cache
+    if (!this.cachedBuffer) {
+      return { success: false, error: '没有缓存的帧数据，请先刷新预览' }
+    }
+
+    // Concurrency guard
+    if (this.running) {
+      return { success: false, error: 'Pipeline already running' }
+    }
+
+    this.running = true
+    const startTime = Date.now()
+
+    try {
       // Stage 6: Send to device
       this.emitStage(STAGES.SENDING)
       const transferResult = await this.serialManager.sendFrameBuffer(
-        buffer,
+        this.cachedBuffer,
         (progress: TransferProgress) => {
           this.emit('transfer-progress', progress)
         }
@@ -139,17 +191,54 @@ export class RenderPipeline extends EventEmitter {
       // Done!
       this.emitStage(STAGES.DONE)
       const durationMs = Date.now() - startTime
-      this.lastRun = new Date().toISOString()
       this.lastError = undefined
 
-      return { success: true, durationMs, previewDataUrl }
+      return { success: true, durationMs }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      const error = `管线异常: ${message}`
+      const error = `同步异常: ${message}`
       this.lastError = error
       return { success: false, error }
     } finally {
       this.running = false
+    }
+  }
+
+  /**
+   * Execute the complete render pipeline (preview + sync).
+   * Backward-compatible: internally calls renderPreview() then syncToDevice().
+   * Returns previewDataUrl even if sync fails.
+   */
+  async execute(): Promise<PipelineResult> {
+    // renderPreview handles concurrency guard
+    const previewResult = await this.renderPreview()
+
+    if (!previewResult.success) {
+      return {
+        success: false,
+        error: previewResult.error,
+        previewDataUrl: previewResult.previewDataUrl
+      }
+    }
+
+    // Attempt sync to device
+    const syncResult = await this.syncToDevice()
+
+    if (!syncResult.success) {
+      // Sync failed, but we still return previewDataUrl
+      return {
+        success: false,
+        error: syncResult.error,
+        durationMs: (previewResult.durationMs || 0) + (syncResult.durationMs || 0),
+        previewDataUrl: previewResult.previewDataUrl
+      }
+    }
+
+    // Both stages succeeded
+    return {
+      success: true,
+      durationMs: (previewResult.durationMs || 0) + (syncResult.durationMs || 0),
+      previewDataUrl: previewResult.previewDataUrl
     }
   }
 
@@ -160,7 +249,8 @@ export class RenderPipeline extends EventEmitter {
     return {
       running: this.running,
       lastRun: this.lastRun,
-      lastError: this.lastError
+      lastError: this.lastError,
+      hasCache: this.cachedBuffer !== null
     }
   }
 

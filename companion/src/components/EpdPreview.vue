@@ -4,8 +4,8 @@
     <div
       class="relative bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
       style="width: 240px; height: 400px;"
-      @click="!running && executeRefresh()"
-      :title="running ? '刷新中...' : '点击刷新预览'"
+      @click="!previewing && executePreview()"
+      :title="previewing ? '渲染中...' : '点击刷新预览'"
     >
       <img
         v-if="previewSrc"
@@ -25,27 +25,27 @@
     </div>
 
     <!-- Stage Progress -->
-    <div v-if="running" class="w-full max-w-xs space-y-2">
+    <div v-if="previewing || syncing" class="w-full max-w-xs space-y-2">
       <div class="flex items-center gap-2">
-        <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+        <div class="w-2 h-2 rounded-full animate-pulse" :class="syncing ? 'bg-emerald-500' : 'bg-indigo-500'"></div>
         <span class="text-xs text-slate-400">{{ stageMessage }}</span>
       </div>
 
-      <!-- Stage Pills -->
-      <div class="flex gap-1">
+      <!-- Stage Pills (preview stages 1-5) -->
+      <div v-if="previewing" class="flex gap-1">
         <div
-          v-for="s in stages"
+          v-for="s in previewStages"
           :key="s"
           class="flex-1 h-1.5 rounded-full transition-colors"
-          :class="getStageClass(s)"
+          :class="getPreviewStageClass(s)"
         ></div>
       </div>
 
-      <!-- Transfer Progress Bar -->
-      <div v-if="currentStage === 'sending' && transferPercent > 0" class="space-y-1">
+      <!-- Transfer Progress Bar (sync stage 6) -->
+      <div v-if="syncing && transferPercent > 0" class="space-y-1">
         <div class="w-full bg-slate-700 rounded-full h-1.5">
           <div
-            class="bg-indigo-500 h-1.5 rounded-full transition-all"
+            class="bg-emerald-500 h-1.5 rounded-full transition-all"
             :style="{ width: `${transferPercent}%` }"
           ></div>
         </div>
@@ -58,60 +58,99 @@
       {{ resultMessage }}
     </div>
 
-    <!-- Refresh Button -->
-    <button
-      @click="executeRefresh"
-      :disabled="running"
-      class="px-6 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg"
-    >
-      {{ running ? '刷新中...' : '刷新墨水屏' }}
-    </button>
+    <!-- Action Buttons -->
+    <div class="flex gap-3">
+      <!-- 刷新预览 Button -->
+      <button
+        @click="executePreview"
+        :disabled="previewing || syncing"
+        class="px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg"
+      >
+        {{ previewing ? '渲染中...' : '刷新预览' }}
+      </button>
+
+      <!-- 同步到相框 Button -->
+      <button
+        @click="executeSync"
+        :disabled="!canSync"
+        class="px-5 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg"
+        :title="syncButtonTitle"
+      >
+        {{ syncing ? '同步中...' : '同步到相框' }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const stages = ['collecting', 'rendering', 'enhancing', 'quantizing', 'encoding', 'sending', 'done'] as const
-type Stage = typeof stages[number]
+const previewStages = ['collecting', 'rendering', 'enhancing', 'quantizing', 'encoding'] as const
+type PreviewStage = typeof previewStages[number]
 
-const running = ref(false)
-const currentStage = ref<Stage | ''>('')
+// Operation states
+const previewing = ref(false)
+const syncing = ref(false)
+const currentStage = ref<string>('')
 const stageMessage = ref('')
 const transferPercent = ref(0)
 const resultMessage = ref('')
 const resultSuccess = ref(false)
 const previewSrc = ref('')
 
-const stageIndex = computed(() => {
-  if (!currentStage.value) return -1
-  return stages.indexOf(currentStage.value as Stage)
+// Device & cache state
+const deviceConnected = ref(false)
+const hasCache = ref(false)
+
+const canSync = computed(() => {
+  return hasCache.value && deviceConnected.value && !previewing.value && !syncing.value
 })
 
-function getStageClass(stage: Stage): string {
-  const si = stages.indexOf(stage)
-  if (si < stageIndex.value) return 'bg-indigo-500'
-  if (si === stageIndex.value) return 'bg-indigo-400 animate-pulse'
+const syncButtonTitle = computed(() => {
+  if (syncing.value) return '正在同步...'
+  if (!hasCache.value) return '请先刷新预览'
+  if (!deviceConnected.value) return '设备未连接'
+  return '将预览内容同步到墨水屏'
+})
+
+const previewStageIndex = computed(() => {
+  if (!currentStage.value) return -1
+  return previewStages.indexOf(currentStage.value as PreviewStage)
+})
+
+function getPreviewStageClass(stage: PreviewStage): string {
+  const si = previewStages.indexOf(stage)
+  if (si < previewStageIndex.value) return 'bg-indigo-500'
+  if (si === previewStageIndex.value) return 'bg-indigo-400 animate-pulse'
   return 'bg-slate-700'
 }
 
-function onStageProgress(progress: { stage: string; message: string }) {
-  currentStage.value = progress.stage as Stage
+function onStageProgress(...args: unknown[]) {
+  const progress = args[0] as { stage: string; message: string }
+  currentStage.value = progress.stage
   stageMessage.value = progress.message
 }
 
-function onTransferProgress(progress: { chunkIndex: number; totalChunks: number; percent: number }) {
+function onTransferProgress(...args: unknown[]) {
+  const progress = args[0] as { chunkIndex: number; totalChunks: number; percent: number }
   transferPercent.value = progress.percent
 }
 
-async function executeRefresh() {
-  running.value = true
+function onSerialStateChanged(...args: unknown[]) {
+  const state = args[0] as { connected: boolean }
+  deviceConnected.value = state.connected
+}
+
+/**
+ * Task 3.2: 刷新预览 — 只渲染不发送
+ */
+async function executePreview() {
+  previewing.value = true
   resultMessage.value = ''
   currentStage.value = ''
-  transferPercent.value = 0
 
   try {
-    const result = await window.api.invoke('pipeline:execute') as {
+    const result = await window.api.invoke('pipeline:render-preview') as {
       success: boolean
       error?: string
       durationMs?: number
@@ -121,32 +160,83 @@ async function executeRefresh() {
     if (result.success) {
       resultSuccess.value = true
       const seconds = result.durationMs ? (result.durationMs / 1000).toFixed(1) : '?'
-      resultMessage.value = `✓ 刷新成功 (${seconds}s)`
-      // Display the rendered preview image
+      resultMessage.value = `✓ 预览已生成 (${seconds}s)`
       if (result.previewDataUrl) {
         previewSrc.value = result.previewDataUrl
       }
+      hasCache.value = true
     } else {
       resultSuccess.value = false
-      resultMessage.value = result.error || '刷新失败'
+      resultMessage.value = result.error || '预览失败'
     }
   } catch (err) {
     resultSuccess.value = false
     resultMessage.value = `异常: ${err}`
   } finally {
-    running.value = false
+    previewing.value = false
     currentStage.value = ''
+  }
+}
+
+/**
+ * Task 3.3: 同步到相框 — 发送缓存帧到设备
+ */
+async function executeSync() {
+  syncing.value = true
+  resultMessage.value = ''
+  transferPercent.value = 0
+  stageMessage.value = '正在发送到设备...'
+
+  try {
+    const result = await window.api.invoke('pipeline:sync-device') as {
+      success: boolean
+      error?: string
+      durationMs?: number
+    }
+
+    if (result.success) {
+      resultSuccess.value = true
+      const seconds = result.durationMs ? (result.durationMs / 1000).toFixed(1) : '?'
+      resultMessage.value = `✓ 同步成功 (${seconds}s)`
+    } else {
+      resultSuccess.value = false
+      resultMessage.value = result.error || '同步失败'
+    }
+  } catch (err) {
+    resultSuccess.value = false
+    resultMessage.value = `异常: ${err}`
+  } finally {
+    syncing.value = false
     transferPercent.value = 0
+    stageMessage.value = ''
+  }
+}
+
+/**
+ * Task 3.4: Fetch initial device status and cache state
+ */
+async function fetchInitialState() {
+  try {
+    const serialStatus = await window.api.invoke('serial:status') as { connected: boolean }
+    deviceConnected.value = serialStatus.connected
+
+    const pipelineStatus = await window.api.invoke('pipeline:status') as { hasCache: boolean }
+    hasCache.value = pipelineStatus.hasCache
+  } catch {
+    // Silently ignore — will update via events
   }
 }
 
 onMounted(() => {
   window.api.on('pipeline:stage-progress', onStageProgress)
   window.api.on('serial:transfer-progress', onTransferProgress)
+  window.api.on('serial:state-changed', onSerialStateChanged)
+  fetchInitialState()
 })
 
 onUnmounted(() => {
   window.api.off('pipeline:stage-progress', onStageProgress)
   window.api.off('serial:transfer-progress', onTransferProgress)
+  window.api.off('serial:state-changed', onSerialStateChanged)
 })
 </script>

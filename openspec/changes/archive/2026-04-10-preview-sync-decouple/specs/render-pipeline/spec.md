@@ -1,4 +1,4 @@
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 完整渲染管线执行
 RenderPipeline 必须编排从数据收集到墨水屏刷屏的完整流程。`execute()` 方法 SHALL 内部调用 `renderPreview()` + `syncToDevice()` 作为快捷方式。

@@ -1,4 +1,4 @@
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Periodic background refresh
 The main process SHALL execute the render pipeline at a configurable interval (stored in `config.refresh.intervalMinutes`, default 30 minutes). The refresh timer SHALL only trigger pipeline execution when the serial device is connected. The timer SHALL use `renderPipeline.execute()` which internally calls renderPreview() + syncToDevice().

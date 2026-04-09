@@ -319,7 +319,7 @@ function setupDataIPC(): void {
   })
 }
 
-// Phase 6: 渲染管线 IPC 通道
+// Phase 6+8: 渲染管线 IPC 通道
 function setupPipelineIPC(): void {
   ipcMain.handle('pipeline:execute', async () => {
     if (!renderPipeline) {
@@ -330,9 +330,25 @@ function setupPipelineIPC(): void {
 
   ipcMain.handle('pipeline:status', async () => {
     if (!renderPipeline) {
-      return { running: false }
+      return { running: false, hasCache: false }
     }
     return renderPipeline.getStatus()
+  })
+
+  // Phase 8: 独立预览渲染通道
+  ipcMain.handle('pipeline:render-preview', async () => {
+    if (!renderPipeline) {
+      return { success: false, error: 'Pipeline not initialized' }
+    }
+    return renderPipeline.renderPreview()
+  })
+
+  // Phase 8: 独立设备同步通道
+  ipcMain.handle('pipeline:sync-device', async () => {
+    if (!renderPipeline) {
+      return { success: false, error: 'Pipeline not initialized' }
+    }
+    return renderPipeline.syncToDevice()
   })
 }
 
