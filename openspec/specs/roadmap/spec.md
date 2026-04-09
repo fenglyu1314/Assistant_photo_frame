@@ -41,17 +41,17 @@
 
 ## Phase 3: Companion 脚手架
 
-**状态**: ⏳ 待开始  
+**状态**: ✅ 已完成  
 **依赖**: Phase 2 (协议定义稳定)  
 **预估**: 5h
 
 搭建 Electron 应用框架，基础主进程 + 窗口管理 + 托盘。
 
-- [ ] 从参考项目复制并初始化 electron-vite 项目
-- [ ] 主进程 + 窗口管理 + preload
-- [ ] 系统托盘实现
-- [ ] 开机自启
-- [ ] 自动更新 (electron-updater)
+- [x] 从参考项目复制并初始化 electron-vite 项目
+- [x] 主进程 + 窗口管理 + preload
+- [x] 系统托盘实现
+- [x] 开机自启
+- [x] 自动更新 (electron-updater)
 
 **验收标准**: Electron 应用能启动、显示窗口、最小化到托盘、开机自启。
 
@@ -155,3 +155,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-09 | Phase 1 固件骨架完成：EPD 驱动移植、清屏验证通过 |
 | 2026-04-09 | 去除旧兼容性负担：删除 TextProtocol、协议自动识别、旧 Python companion 兼容目标；量化引擎验收改为视觉正确而非逐字节匹配 Python |
 | 2026-04-09 | Phase 2 固件二进制协议完成：BinaryProtocol 状态机 + 分块传输 + 心跳验证通过 |
+| 2026-04-09 | Phase 3 Companion 脚手架完成：Electron 应用骨架、窗口管理、系统托盘、开机自启、自动更新 |
