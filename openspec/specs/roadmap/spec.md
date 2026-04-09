@@ -59,18 +59,18 @@
 
 ## Phase 4: 量化引擎
 
-**状态**: ⏳ 待开始  
+**状态**: ✅ 已完成  
 **依赖**: 无 (可与 Phase 2/3 并行)  
 **预估**: 5.5h
 
 实现 TypeScript 量化引擎 (参考 Python img2epd.py 算法思路)，编写单元测试。
 
-- [ ] palette.ts 调色板定义
-- [ ] quantizer.ts 最近邻量化
-- [ ] quantizer.ts Floyd-Steinberg 抖动
-- [ ] 饱和度预处理 (enhanceSaturation)
-- [ ] buffer-encoder.ts 物理缓冲区编码 (rotation=3)
-- [ ] 单元测试 (验证量化/编码正确性)
+- [x] palette.ts 调色板定义
+- [x] quantizer.ts 最近邻量化
+- [x] quantizer.ts Floyd-Steinberg 抖动
+- [x] 饱和度预处理 (enhanceSaturation)
+- [x] buffer-encoder.ts 物理缓冲区编码 (rotation=3)
+- [x] 单元测试 (验证量化/编码正确性, 54 tests passed)
 
 **验收标准**: TypeScript 量化引擎对标准测试图片的输出视觉正确，6色量化+抖动效果符合预期。
 
@@ -156,3 +156,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-09 | 去除旧兼容性负担：删除 TextProtocol、协议自动识别、旧 Python companion 兼容目标；量化引擎验收改为视觉正确而非逐字节匹配 Python |
 | 2026-04-09 | Phase 2 固件二进制协议完成：BinaryProtocol 状态机 + 分块传输 + 心跳验证通过 |
 | 2026-04-09 | Phase 3 Companion 脚手架完成：Electron 应用骨架、窗口管理、系统托盘、开机自启、自动更新 |
+| 2026-04-09 | Phase 4 量化引擎完成：palette.ts 6色调色板、quantizer.ts 最近邻/FS抖动/饱和度增强、buffer-encoder.ts 坐标变换+打包，54 个单元测试全部通过 |
