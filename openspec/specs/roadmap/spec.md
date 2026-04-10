@@ -161,17 +161,19 @@
 
 ## Phase 9: 文字清晰度优化
 
-**状态**: 🔲 未开始  
+**状态**: ✅ 已完成  
 **依赖**: Phase 8  
 **预估**: 4h
 
 优化量化算法，解决 Floyd-Steinberg 抖动导致文字笔画中出现杂色的问题。
 
-- [ ] 文字区域保护：对接近纯黑/纯白的像素直接映射，跳过抖动误差扩散
-- [ ] 阈值判断：像素到 BLACK/WHITE 的色差 < threshold 时直接量化，不参与 FS 扩散
-- [ ] 可选：CIELab 色差替代 RGB 欧氏距离，提升感知准确性
-- [ ] 可选：调色板 RGB 值微调（匹配实际墨水屏显示效果）
-- [ ] 新增文字保护相关单元测试
+- [x] 阈值保护：DITHER_THRESHOLD_SQ 24000，接近调色板色的像素跳过 FS 误差扩散
+- [x] nearestPaletteIndexWithDist() 带距离的最近邻查找
+- [x] preprocessGrayPixels() 灰色像素预处理：无色相灰色像素二值化为纯黑/纯白
+- [x] CSS 抗杂色强化：禁用 text-shadow/box-shadow/filter，补充 font-smooth
+- [x] dashboard.html event-dot 改用菱形，消除圆形 AA 灰边
+- [x] HiDPI resize 使用 quality: 'good' 减少灰色插值
+- [x] 新增文字保护与灰色预处理单元测试（113 tests passed）
 
 **验收标准**: 纯黑/白文字笔画清晰无杂色，非文字区域（图标、色块）仍保持正常的抖动混色效果。
 
@@ -203,3 +205,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-10 | Phase 7 UI 与打包完成：App.vue 分栏布局、SerialPanel/TodoEditor/EventEditor/WeatherPanel/EpdPreview 五大 UI 组件、定时后台刷新、electron-builder NSIS 打包、DISPLAY_DONE 超时修复、天气 API Host 支持，89 个单元测试全部通过。已知问题：UI 预览图不显示 |
 | 2026-04-10 | 新增 Phase 8 (预览与同步解耦) + Phase 9 (文字清晰度优化) |
 | 2026-04-10 | Phase 8 预览与同步解耦完成：RenderPipeline 拆分为 renderPreview() + syncToDevice()、IPC 通道 pipeline:render-preview/sync-device、EpdPreview.vue 双按钮 UI、定时刷新适配，测试验证通过 |
+| 2026-04-10 | Phase 9 文字清晰度优化完成：preprocessGrayPixels() 灰色二值化预处理、DITHER_THRESHOLD_SQ 3000→24000、CSS 抗杂色强化、HiDPI resize quality:good，113 个单元测试全部通过 |
