@@ -1,8 +1,8 @@
 ## Requirements
 
-### Requirement: Electron 应用启动
+### Requirement: 桌面端启动
 
-系统必须使用 Electron 28+ 作为运行时，通过 electron-vite 构建工具管理主进程和渲染进程。应用启动后必须创建主窗口并加载 Vue 3 渲染进程页面。
+系统必须使用 Electron 28+ 作为运行时，通过 electron-vite 构建工具管理主进程和渲染进程。桌面端启动后必须创建主窗口并加载 Vue 3 渲染进程页面。
 
 #### Scenario: 正常启动
 

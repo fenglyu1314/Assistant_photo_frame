@@ -1,6 +1,6 @@
 ## Why
 
-Electron 伴侣应用（Phase 3）和量化引擎（Phase 4）已就绪，固件端二进制协议（Phase 2）也已完成。但 PC 端目前无法与 ESP32 通信——缺少串口发现、连接管理和二进制协议编码/发送能力。Phase 5 将补齐这一关键链路，使 Electron 能通过 USB CDC 串口发现 ESP32、建立连接、发送 192KB 帧缓冲区并接收固件响应。
+桌面端（Phase 3）和量化引擎（Phase 4）已就绪，固件端二进制协议（Phase 2）也已完成。但 桌面端目前无法与 ESP32 通信——缺少串口发现、连接管理和二进制协议编码/发送能力。Phase 5 将补齐这一关键链路，使 Electron 能通过 USB CDC 串口发现 ESP32、建立连接、发送 192KB 帧缓冲区并接收固件响应。
 
 ## What Changes
 
@@ -16,7 +16,7 @@ Electron 伴侣应用（Phase 3）和量化引擎（Phase 4）已就绪，固件
 
 ### New Capabilities
 - `serial-manager`: 串口自动扫描（VID 过滤）、连接管理（打开/关闭/自动重连）、设备状态事件广播
-- `binary-protocol-encoder`: PC 端二进制帧编码器 — CRC-16/CCITT、帧构建、192KB 分块传输流程（BEGIN→DATA×47→END）、逐块 ACK/NAK 确认、PING/PONG 心跳
+- `binary-protocol-encoder`: 桌面端二进制帧编码器 — CRC-16/CCITT、帧构建、192KB 分块传输流程（BEGIN→DATA×47→END）、逐块 ACK/NAK 确认、PING/PONG 心跳
 - `serial-ipc-bridge`: 主进程串口功能到渲染进程的 IPC 通道桥接
 
 ### Modified Capabilities

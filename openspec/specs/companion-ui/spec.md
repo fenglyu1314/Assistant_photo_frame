@@ -91,16 +91,16 @@ EpdPreview.vue SHALL display the current EPD render output with separate control
 - **THEN** the component SHALL display the error message and allow user to retry
 
 #### Scenario: Sync to device trigger
-- **WHEN** user clicks the "同步到相框" button
+- **WHEN** user clicks the "同步到墨水屏" button
 - **THEN** the component SHALL invoke `pipeline:sync-device` and display a progress indicator showing the sending stage with transfer progress
 
 #### Scenario: Sync button availability
 - **WHEN** no preview has been rendered (no cached buffer) OR the serial device is not connected
-- **THEN** the "同步到相框" button SHALL be disabled with appropriate tooltip explaining why
+- **THEN** the "同步到墨水屏" button SHALL be disabled with appropriate tooltip explaining why
 
 #### Scenario: Sync button enabled
 - **WHEN** a preview has been rendered (cached buffer exists) AND the serial device is connected
-- **THEN** the "同步到相框" button SHALL be enabled and clickable
+- **THEN** the "同步到墨水屏" button SHALL be enabled and clickable
 
 #### Scenario: Transfer progress display
 - **WHEN** the sync operation is in the "sending" stage

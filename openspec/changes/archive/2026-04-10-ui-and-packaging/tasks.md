@@ -12,7 +12,7 @@
 ## 3. EPD 预览与刷新
 
 - [x] 3.1 创建 `src/components/EpdPreview.vue` 墨水屏预览组件（预览图展示区、手动刷新按钮、管线阶段进度条、传输进度条），通过 IPC 调用 `pipeline:execute`，监听 `pipeline:stage-progress` 和 `serial:transfer-progress` 事件
-- [x] 3.2 扩展主进程 IPC：添加 `pipeline:execute` 返回预览截图（PNG base64），或新增 `pipeline:preview` 通道仅执行渲染+返回截图不发送到设备
+- [x] 3.2 扩展主进程 IPC：添加 `pipeline:execute` 返回预览截图（PNG base64），或新增 `pipeline:preview` 通道仅执行渲染+返回截图不发送到墨水屏
 
 ## 4. 定时后台刷新
 

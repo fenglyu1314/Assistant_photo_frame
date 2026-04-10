@@ -1,6 +1,6 @@
 ## Context
 
-当前项目需要将 PC 端渲染的 HTML 画面（480×800 RGBA 像素）转换为 ESP32 墨水屏可显示的 192KB 帧缓冲区。参考实现是 Python `tools/img2epd.py`（601 行），需要将其核心算法精确移植为 TypeScript，并利用 TypedArray 提升性能。
+当前项目需要将 桌面端渲染的 HTML 画面（480×800 RGBA 像素）转换为 ESP32 墨水屏可显示的 192KB 帧缓冲区。参考实现是 Python `tools/img2epd.py`（601 行），需要将其核心算法精确移植为 TypeScript，并利用 TypedArray 提升性能。
 
 量化引擎位于渲染管线的中间环节：
 

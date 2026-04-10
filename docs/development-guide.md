@@ -22,14 +22,14 @@
 
 ### 定位
 
-墨水屏桌面助手：ESP32-S3 固件 + Electron 桌面伴侣应用。
+墨水屏桌面助手：ESP32-S3 固件 + 桌面端。
 
 ### 核心架构
 
-ESP32 做「帧缓冲区显示器」，PC 端做所有渲染和智能：
+墨水屏做「帧缓冲区显示器」，桌面端做所有渲染和智能：
 
 ```
-Electron App ──(二进制帧协议/USB CDC)──→ ESP32 固件
+桌面端 ──(帧协议/USB CDC)──→ 墨水屏（固件）
   HTML/CSS渲染 → 截屏 → 6色量化+FS抖动     接收 → PSRAM → SPI刷屏
   → 编码192KB → 分块传输(47块×4KB)
 ```
@@ -47,8 +47,8 @@ Electron App ──(二进制帧协议/USB CDC)──→ ESP32 固件
 ### 技术栈
 
 - **固件**: PlatformIO + Arduino Framework, C/C++
-- **桌面应用**: Electron 28+ / TypeScript / Vue 3 / electron-vite / serialport / Tailwind CSS
-- **通信协议**: 二进制帧协议 (MAGIC 0xEB0D)
+- **桌面端**: Electron 28+ / TypeScript / Vue 3 / electron-vite / serialport / Tailwind CSS
+- **通信协议**: 帧协议 (MAGIC 0xEB0D)
 
 ---
 
@@ -69,7 +69,7 @@ Assistant_photo_frame/
 │   ├── platformio.ini
 │   └── README.md
 │
-├── companion/                 # Electron 桌面应用
+├── companion/                 # 桌面端 (Electron)
 │   ├── electron/             # 主进程 (Node.js)
 │   │   ├── main.ts           # 入口: 窗口管理 + 托盘 + 定时任务
 │   │   ├── preload.ts        # contextBridge IPC 桥接
@@ -141,7 +141,7 @@ pio device monitor          # 串口监视
 
 **注意**: 编译和烧录操作由用户手动执行，AI 不执行这些命令。
 
-### 3.2 桌面应用 (companion/)
+### 3.2 桌面端 (companion/)
 
 ```bash
 cd companion
@@ -193,9 +193,9 @@ npm run package             # 打包安装程序
 
 **依赖**: Phase 1
 
-### Phase 3: Companion 脚手架
+### Phase 3: 桌面端脚手架
 
-搭建 Electron 应用框架，基础主进程 + 窗口管理 + 托盘。
+搭建桌面端框架，基础主进程 + 窗口管理 + 托盘。
 
 | 任务 | 预估 |
 |------|------|
@@ -205,7 +205,7 @@ npm run package             # 打包安装程序
 | 开机自启 | 0.5h |
 | 自动更新 (electron-updater) | 1h |
 
-**产出**: Electron 应用能启动、显示窗口、最小化到托盘。
+**产出**: 桌面端能启动、显示窗口、最小化到托盘。
 
 **依赖**: Phase 2 (协议定义稳定后开发串口模块才有意义)
 
@@ -237,7 +237,7 @@ npm run package             # 打包安装程序
 | 帧缓冲区分块发送 + ACK/NAK | 1.5h |
 | 设备状态监听 + 自动重连 | 1h |
 
-**产出**: Electron 应用能发现 ESP32、建立连接、发送帧缓冲区数据。
+**产出**: 桌面端能发现墨水屏、建立连接、发送帧缓冲区数据。
 
 **依赖**: Phase 2 (协议定义), Phase 3 (Electron 框架)
 
@@ -275,7 +275,7 @@ npm run package             # 打包安装程序
 | electron-builder 打包配置 | 1h |
 | 端到端联调验证 | 2h |
 
-**产出**: 完整可安装的桌面应用。
+**产出**: 完整可安装的桌面端。
 
 **依赖**: Phase 6
 
@@ -320,7 +320,7 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 - **锁定僵化**: Phase 1 的实现可能暴露 Phase 3 的假设错误
 - **上下文过载**: 多个活跃 Change 让后续 AI 对话混乱
 - **反馈断裂**: 没有实现反馈的纯设计容易脱离实际
-- **协议可能变**: 固件协议确定后，companion 的设计可能需要调整
+- **协议可能变**: 固件协议确定后，桌面端的设计可能需要调整
 
 ### 路线图维护
 
@@ -366,7 +366,7 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 
 ## 6. 测试策略
 
-### 6.1 Companion 核心模块 (单元测试)
+### 6.1 桌面端核心模块 (单元测试)
 
 | 模块 | 测试内容 | 工具 |
 |------|---------|------|
@@ -379,7 +379,7 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 
 | 测试方式 | 内容 |
 |---------|------|
-| 串口模拟脚本 | Python 脚本模拟 PC 端发送二进制帧 |
+| 串口模拟脚本 | Python 脚本模拟桌面端发送二进制帧 |
 | 手动验证 | 实际刷屏效果检查 |
 | PING/PONG | 心跳响应验证 |
 
@@ -400,7 +400,7 @@ Electron → ESP32 实际传输刷屏，验证完整渲染管线。
 
 理由：新架构下 ESP32 只是「帧缓冲区显示器」，旧项目的 ASCII 渲染、JSON 解析等不再需要。
 
-### 7.2 Companion 起点：从参考项目复制
+### 7.2 桌面端起点：从参考项目复制
 
 | 方案 | 结论 |
 |------|------|
@@ -415,9 +415,9 @@ Electron → ESP32 实际传输刷屏，验证完整渲染管线。
 
 ### 7.4 版本号
 
-- 固件和 companion 分别独立版本号
+- 固件和桌面端分别独立版本号
 - 固件版本: `platformio.ini` 的 `build_flags` 定义
-- Companion 版本: `package.json` 的 `version`
+- 桌面端版本: `package.json` 的 `version`
 - 协议版本: BEGIN 帧元数据中携带，便于将来兼容性检查
 
 ---

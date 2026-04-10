@@ -1,6 +1,6 @@
 ## Context
 
-Electron 伴侣应用骨架（Phase 3）已搭建完成：主进程窗口管理、系统托盘、preload IPC 桥接均可用。量化引擎（Phase 4）可将 RGBA 像素数据转为 192KB 物理帧缓冲区。固件端（Phase 2）的 BinaryProtocol 状态机已实现，能接收二进制帧、写入 PSRAM、刷屏。
+桌面端骨架（Phase 3）已搭建完成：主进程窗口管理、系统托盘、preload IPC 桥接均可用。量化引擎（Phase 4）可将 RGBA 像素数据转为 192KB 物理帧缓冲区。固件端（Phase 2）的 BinaryProtocol 状态机已实现，能接收二进制帧、写入 PSRAM、刷屏。
 
 缺失的关键环节是 **PC → ESP32 的通信链路**：串口发现、连接管理、二进制帧编码发送、响应解析。本设计填补这一空白。
 

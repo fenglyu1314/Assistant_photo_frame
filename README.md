@@ -1,13 +1,13 @@
 # Assistant Photo Frame
 
-墨水屏桌面助手：ESP32-S3 固件 + Electron 桌面伴侣应用。
+墨水屏桌面助手：ESP32-S3 固件 + Electron 桌面端。
 
 ## 核心理念
 
-ESP32 做「帧缓冲区显示器」，PC 端做所有渲染和智能。
+墨水屏做「帧缓冲区显示器」，桌面端做所有渲染和智能。
 
 ```
-Electron App ──(二进制帧协议/USB CDC)──→ ESP32 固件
+桌面端 ──(帧协议/USB CDC)──→ 墨水屏（固件）
   HTML/CSS渲染 → 截屏 → 6色量化+FS抖动     接收 → PSRAM → SPI刷屏
   → 编码192KB → 分块传输(47块×4KB)
 ```
@@ -28,7 +28,7 @@ Electron App ──(二进制帧协议/USB CDC)──→ ESP32 固件
 ```
 Assistant_photo_frame/
 ├── firmware/          # ESP32 固件 (PlatformIO + Arduino)
-├── companion/         # Electron 桌面应用 (Vue 3 + TypeScript)
+├── companion/         # 桌面端 (Electron + Vue 3 + TypeScript)
 ├── docs/              # 项目文档
 ├── openspec/          # 项目规格管理
 └── Reference/         # 参考资料 (不参与构建)
@@ -37,8 +37,8 @@ Assistant_photo_frame/
 ## 技术栈
 
 - **固件**: PlatformIO + Arduino Framework, C/C++
-- **桌面应用**: Electron 28+ / TypeScript / Vue 3 / electron-vite / Tailwind CSS
-- **串口通信**: node-serialport + 二进制帧协议 (MAGIC 0xEB0D)
+- **桌面端**: Electron 28+ / TypeScript / Vue 3 / electron-vite / Tailwind CSS
+- **串口通信**: node-serialport + 帧协议 (MAGIC 0xEB0D)
 
 ## 快速开始
 
@@ -51,7 +51,7 @@ pio run -t upload      # 烧录
 pio device monitor     # 串口监视
 ```
 
-### 桌面应用
+### 桌面端
 
 ```bash
 cd companion

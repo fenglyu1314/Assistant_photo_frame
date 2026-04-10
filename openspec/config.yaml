@@ -1,24 +1,29 @@
 schema: spec-driven
 
 context: |
-  项目名称：Assistant Photo Frame
-  定位：墨水屏桌面助手（ESP32-S3 固件 + Electron 桌面伴侣应用）
+  项目名称：Assistant Photo Frame（墨水屏桌面助手）
+  术语表：openspec/specs/glossary/spec.md（所有沟通和文档必须遵循）
+  核心术语：墨水屏=硬件整机, 桌面端=Electron应用, 固件=ESP32程序, 帧协议=USB二进制通信协议
   硬件：ESP32-S3 (16MB Flash, 8MB PSRAM) + Waveshare 7.3" 6色 e-Paper (索引4空位)
   分辨率：物理 800×480, 逻辑 480×800 (竖屏 rotation=3)
-  架构：PC 端渲染+量化+传输 → ESP32 接收帧缓冲区刷屏
+  架构：桌面端渲染+量化+传输 → 墨水屏（固件）接收帧缓冲区刷屏
   技术栈：
     - 固件：PlatformIO + Arduino Framework (C/C++)
-    - 桌面：Electron 28+ / TypeScript / Vue 3 / electron-vite / Tailwind CSS
-  通信：USB CDC 115200 baud, 二进制帧协议 (MAGIC 0xEB0D)
+    - 桌面端：Electron 28+ / TypeScript / Vue 3 / electron-vite / Tailwind CSS
+  通信：USB CDC 115200 baud, 帧协议 (MAGIC 0xEB0D)
   设计参考：Reference/ESP32-S3-PhotoPainter/docs/design-electron-epd-companion.md
   可复用模块：EPaperDriver, BinaryProtocol, board_config.h (来自 Reference/ESP32-S3-PhotoPainter/)
 
 rules:
+  glossary:
+    - 所有 artifact（proposal / design / spec / task）必须遵循 glossary spec 中的术语定义
+    - 与用户沟通时如发现使用了非标准术语，应及时提醒并纠正
+    - 新增概念时应同步更新 glossary spec
   proposal:
     - 保持提案简洁，聚焦功能变更
     - 必须列出影响的文件和模块（firmware / companion）
-    - 注明是否涉及协议变更
+    - 注明是否涉及帧协议变更
   tasks:
     - 每个任务应可在 2 小时内完成
-    - 固件任务和桌面应用任务分开列出
+    - 固件任务和桌面端任务分开列出
     - 编译烧录步骤标注为用户手动执行

@@ -1,6 +1,6 @@
 ## Why
 
-固件侧（Phase 1-2）已完成，ESP32 能接收二进制帧缓冲区并刷屏。现在需要搭建 PC 端 Electron 桌面应用的基础框架，为后续的量化引擎（Phase 4）、串口通信（Phase 5）、渲染管线（Phase 6）和 UI（Phase 7）提供运行载体。本阶段聚焦应用骨架，不涉及业务功能。
+固件侧（Phase 1-2）已完成，ESP32 能接收二进制帧缓冲区并刷屏。现在需要搭建 桌面端 桌面端的基础框架，为后续的量化引擎（Phase 4）、串口通信（Phase 5）、渲染管线（Phase 6）和 UI（Phase 7）提供运行载体。本阶段聚焦应用骨架，不涉及业务功能。
 
 ## What Changes
 
@@ -16,7 +16,7 @@
 
 ### New Capabilities
 
-- `electron-app-shell`: Electron 应用框架能力——主进程/渲染进程架构、窗口管理、preload IPC 桥接、系统托盘常驻、开机自启、自动更新（electron-updater）
+- `electron-app-shell`: 桌面端框架能力——主进程/渲染进程架构、窗口管理、preload IPC 桥接、系统托盘常驻、开机自启、自动更新（electron-updater）
 
 ### Modified Capabilities
 

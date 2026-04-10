@@ -168,7 +168,7 @@ renderPipeline.execute()
 
 ### R3: QWeather API Key 泄露
 - **风险**：API Key 存储在本地 JSON 文件中
-- **缓解**：这是桌面应用，Key 存在用户本机 appData 中，非代码仓库；免费 Key 无金融风险
+- **缓解**：这是桌面端，Key 存在用户本机 appData 中，非代码仓库；免费 Key 无金融风险
 
 ### R4: 模板渲染到字体可能不一致
 - **风险**：不同 Windows 系统可能缺少指定字体
