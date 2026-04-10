@@ -181,21 +181,26 @@
 
 ## Phase 10: 预览系统增强
 
-**状态**: ⬜ 计划中  
+**状态**: ✅ 已完成  
 **依赖**: Phase 8  
 **预估**: 8h
 
-重做预览系统：双图对比（原图 vs 量化图）+ 缩放/局部查看，让用户能精确审查量化效果。
+重做预览系统：双图对比（原图 vs 量化图）+ 缩放/局部查看 + 量化参数调整，让用户能精确审查和调优量化效果。
 
-- [ ] 渲染管线新增量化图生成：Stage 4 后将 palette indices 还原为 RGB → canvas → PNG dataURL
-- [ ] `renderPreview()` 返回值新增 `quantizedDataUrl` 字段
-- [ ] EpdPreview.vue 重做：Tab 切换「原图」/「量化图」
-- [ ] 缩放控制：适应窗口（默认）/ 50% / 75% / 100%（1:1 像素级）
-- [ ] 大图拖拽平移：100% 模式下支持鼠标拖拽查看局部
-- [ ] Ctrl+滚轮缩放
-- [ ] 可选：量化色彩统计条（6 色使用占比）
+- [x] 渲染管线新增量化图生成：Stage 4 后将 palette indices 还原为 RGB → nativeImage → PNG dataURL
+- [x] `renderPreview()` 返回值新增 `quantizedDataUrl` 和 `colorStats` 字段
+- [x] EpdPreview.vue 重做：Tab 切换「原图」/「量化图」
+- [x] 缩放控制：适应窗口（默认）/ 50% / 75% / 100%（1:1 像素级）
+- [x] 大图拖拽平移：100% 模式下支持鼠标拖拽查看局部
+- [x] Ctrl+滚轮缩放
+- [x] 量化色彩统计条（6 色使用占比）
+- [x] QuantizationParams 数据模型 + 参数验证
+- [x] 量化参数面板（4 个 slider + 300ms debounce 重量化）
+- [x] RGBA 缓存 + requantize() 快速重量化（跳过 Stage 1-2）
+- [x] pipeline:requantize IPC 通道
+- [x] 152 个单元测试全部通过
 
-**验收标准**: 预览区可切换查看原图和量化后效果图；支持多级缩放和拖拽平移，100% 模式下能看清单个像素级细节。
+**验收标准**: 预览区可切换查看原图和量化后效果图；支持多级缩放和拖拽平移，100% 模式下能看清单个像素级细节；可实时调整量化参数并立即看到效果。
 
 ---
 
@@ -274,3 +279,4 @@ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 5 ──→ Phase 6 
 | 2026-04-10 | Phase 8 预览与同步解耦完成：RenderPipeline 拆分为 renderPreview() + syncToDevice()、IPC 通道 pipeline:render-preview/sync-device、EpdPreview.vue 双按钮 UI、定时刷新适配，测试验证通过 |
 | 2026-04-10 | Phase 9 文字清晰度优化完成：preprocessGrayPixels() 灰色二值化预处理、DITHER_THRESHOLD_SQ 3000→24000、CSS 抗杂色强化、HiDPI resize quality:good，113 个单元测试全部通过 |
 | 2026-04-10 | 新增 Phase 10 (预览系统增强) + Phase 11 (墨水屏模板优化) + Phase 12 (桌面端交互优化) |
+| 2026-04-10 | Phase 10 预览系统增强完成：双图对比 Tab 切换、缩放/平移控制、色彩统计条、QuantizationParams 数据模型、量化参数面板 4 个 slider + debounce 重量化、RGBA 缓存 + requantize() 快速重量化、pipeline:requantize IPC 通道，152 个单元测试全部通过 |
