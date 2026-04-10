@@ -69,14 +69,14 @@
         {{ previewing ? '渲染中...' : '刷新预览' }}
       </button>
 
-      <!-- 同步到相框 Button -->
+      <!-- 同步到墨水屏 Button -->
       <button
         @click="executeSync"
         :disabled="!canSync"
         class="px-5 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg"
         :title="syncButtonTitle"
       >
-        {{ syncing ? '同步中...' : '同步到相框' }}
+        {{ syncing ? '同步中...' : '同步到墨水屏' }}
       </button>
     </div>
   </div>
@@ -109,7 +109,7 @@ const canSync = computed(() => {
 const syncButtonTitle = computed(() => {
   if (syncing.value) return '正在同步...'
   if (!hasCache.value) return '请先刷新预览'
-  if (!deviceConnected.value) return '设备未连接'
+  if (!deviceConnected.value) return '墨水屏未连接'
   return '将预览内容同步到墨水屏'
 })
 
@@ -179,13 +179,13 @@ async function executePreview() {
 }
 
 /**
- * Task 3.3: 同步到相框 — 发送缓存帧到设备
+ * Task 3.3: 同步到墨水屏 — 发送缓存帧到设备
  */
 async function executeSync() {
   syncing.value = true
   resultMessage.value = ''
   transferPercent.value = 0
-  stageMessage.value = '正在发送到设备...'
+  stageMessage.value = '正在发送到墨水屏...'
 
   try {
     const result = await window.api.invoke('pipeline:sync-device') as {

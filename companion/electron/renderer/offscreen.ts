@@ -62,9 +62,7 @@ export class OffscreenRenderer {
         width: RENDER_WIDTH,
         height: RENDER_HEIGHT,
         webPreferences: {
-          offscreen: true,
-          // @ts-ignore - deviceScaleFactor may not be in older type defs
-          deviceScaleFactor: 1
+          offscreen: true
         },
         // Ensure exact pixel dimensions
         useContentSize: true,
@@ -96,14 +94,29 @@ export class OffscreenRenderer {
       await new Promise(resolve => setTimeout(resolve, POST_LOAD_DELAY_MS))
 
       // Capture the page
-      const image = await win.webContents.capturePage()
-      const size = image.getSize()
+      let image = await win.webContents.capturePage()
+      let size = image.getSize()
 
-      // Validate dimensions
+      // On HiDPI screens, capturePage() returns an image scaled by the system
+      // DPR (e.g. 960×1600 on a 2x display). Detect this and resize down to
+      // the target 480×800. This is more reliable than enableDeviceEmulation
+      // which can trigger Chromium-level crashes in offscreen windows.
       if (size.width !== RENDER_WIDTH || size.height !== RENDER_HEIGHT) {
-        return {
-          success: false,
-          error: `Size mismatch: expected ${RENDER_WIDTH}×${RENDER_HEIGHT}, got ${size.width}×${size.height}`
+        const scaleX = size.width / RENDER_WIDTH
+        const scaleY = size.height / RENDER_HEIGHT
+
+        // Only auto-fix if it's an exact integer multiple (e.g. 2x, 3x)
+        if (Number.isInteger(scaleX) && Number.isInteger(scaleY) && scaleX === scaleY) {
+          console.warn(
+            `[OffscreenRenderer] DPR scaling detected (${scaleX}x), resizing ${size.width}×${size.height} → ${RENDER_WIDTH}×${RENDER_HEIGHT}`
+          )
+          image = image.resize({ width: RENDER_WIDTH, height: RENDER_HEIGHT })
+          size = image.getSize()
+        } else {
+          return {
+            success: false,
+            error: `Size mismatch: expected ${RENDER_WIDTH}×${RENDER_HEIGHT}, got ${size.width}×${size.height}`
+          }
         }
       }
 
@@ -111,17 +124,36 @@ export class OffscreenRenderer {
       const pngBuffer = image.toPNG()
       const previewDataUrl = `data:image/png;base64,${pngBuffer.toString('base64')}`
 
-      // Get RGBA bitmap
+      // Get raw bitmap data
+      // IMPORTANT: On Windows, toBitmap() returns BGRA format (platform-dependent).
+      // We must convert to RGBA for correct color processing downstream.
       const bitmap = image.toBitmap()
-      const rgba = new Uint8Array(bitmap.buffer, bitmap.byteOffset, bitmap.byteLength)
+      const rawPixels = new Uint8Array(bitmap.buffer, bitmap.byteOffset, bitmap.byteLength)
 
-      // Verify expected RGBA length
+      // Verify expected buffer length
       const expectedLength = RENDER_WIDTH * RENDER_HEIGHT * 4
-      if (rgba.length !== expectedLength) {
+      if (rawPixels.length !== expectedLength) {
         return {
           success: false,
-          error: `RGBA buffer size mismatch: expected ${expectedLength}, got ${rgba.length}`
+          error: `Bitmap buffer size mismatch: expected ${expectedLength}, got ${rawPixels.length}`
         }
+      }
+
+      // Convert BGRA → RGBA by swapping R↔B channels
+      // toBitmap() format is platform-dependent: Windows uses BGRA, macOS uses RGBA.
+      // We detect the platform and swap only on Windows to ensure correct color output.
+      const rgba = new Uint8Array(rawPixels.length)
+      if (process.platform === 'win32') {
+        console.log('[OffscreenRenderer] Windows detected, converting BGRA → RGBA')
+        for (let i = 0; i < rawPixels.length; i += 4) {
+          rgba[i]     = rawPixels[i + 2]  // R ← B
+          rgba[i + 1] = rawPixels[i + 1]  // G ← G
+          rgba[i + 2] = rawPixels[i]      // B ← R
+          rgba[i + 3] = rawPixels[i + 3]  // A ← A
+        }
+      } else {
+        // macOS / Linux: already RGBA, just copy
+        rgba.set(rawPixels)
       }
 
       return {

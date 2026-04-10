@@ -64,7 +64,7 @@ const STAGES = {
   ENHANCING: { stage: 'enhancing', message: '正在增强饱和度...' },
   QUANTIZING: { stage: 'quantizing', message: '正在量化为6色...' },
   ENCODING: { stage: 'encoding', message: '正在编码缓冲区...' },
-  SENDING: { stage: 'sending', message: '正在发送到设备...' },
+  SENDING: { stage: 'sending', message: '正在发送到墨水屏...' },
   DONE: { stage: 'done', message: '完成!' }
 }
 

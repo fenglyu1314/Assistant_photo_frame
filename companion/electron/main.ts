@@ -9,6 +9,14 @@ import { WeatherApi } from './data/weather-api'
 import { OffscreenRenderer } from './renderer/offscreen'
 import { RenderPipeline, type StageProgress } from './pipeline/render-pipeline'
 
+// Global error handlers — prevent uncaught errors from crashing the app
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled rejection:', reason)
+})
+
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
@@ -383,17 +391,15 @@ function setupScheduledRefresh(): void {
   // Listen to serial state changes to start/stop timer
   serialManager!.on('state-changed', async (state: { connected: boolean }) => {
     if (state.connected) {
-      // Device connected: execute once immediately, then start timer
-      console.log('[RefreshTimer] Device connected, executing initial refresh...')
-      if (renderPipeline) {
-        const result = await renderPipeline.execute()
-        if (result.success) {
-          console.log(`[RefreshTimer] Initial refresh completed in ${result.durationMs}ms`)
-        }
+      // Device connected: only start periodic timer.
+      // User should manually click "刷新预览" → "同步到墨水屏" for the first refresh.
+      console.log('[RefreshTimer] Device connected, starting periodic timer...')
+      try {
+        const config = await ConfigStore.get('refresh')
+        startRefreshTimer(config.intervalMinutes)
+      } catch (err) {
+        console.error('[RefreshTimer] Failed to start timer:', err)
       }
-      // Start periodic timer
-      const config = await ConfigStore.get('refresh')
-      startRefreshTimer(config.intervalMinutes)
     } else {
       // Device disconnected: stop timer
       stopRefreshTimer()
