@@ -51,7 +51,19 @@
 - **那么** 所有向下方向的误差扩散必须跳过
 
 ### 需求:Floyd-Steinberg 阈值保护
-量化引擎的 Floyd-Steinberg 抖动模式必须支持**阈值保护**：当像素到最近调色板颜色的 RGB 欧氏距离平方小于阈值 `DITHER_THRESHOLD_SQ` 时，直接映射到该调色板颜色，**不执行误差扩散**。
+量化引擎的 Floyd-Steinberg 抖动模式必须支持**阈值保护**：当像素到最近调色板颜色的 RGB 欧氏距离平方小于阈值时，直接映射到该调色板颜色，**不执行误差扩散**。
+
+阈值必须通过可选的 `ditherThreshold` 参数传入。当未传入时，使用模块级默认值 `DITHER_THRESHOLD_SQ = 24000`。
+
+函数签名：
+```typescript
+quantizeFloydSteinberg(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  ditherThreshold?: number   // 可选参数，默认 DITHER_THRESHOLD_SQ
+): Uint8Array
+```
 
 阈值保护的目的是消除文字区域因微小误差累积产生的彩色杂点，同时保留非文字区域（图片、渐变等）的正常抖动效果。
 
@@ -73,6 +85,18 @@
 - **当** 输入像素接近任一调色板颜色（不仅限于黑白）
 - **那么** 阈值保护同样生效，彩色文字（红色标题、蓝色链接等）同样受益
 
+#### 场景:未传阈值参数时使用默认值
+- **当** 调用 `quantizeFloydSteinberg(rgba, w, h)` 不传 `ditherThreshold`
+- **那么** 行为与修改前完全一致，使用 `DITHER_THRESHOLD_SQ = 24000`
+
+#### 场景:传入自定义阈值
+- **当** 调用 `quantizeFloydSteinberg(rgba, w, h, 0)`
+- **那么** 阈值保护完全禁用，所有像素都执行误差扩散
+
+#### 场景:传入高阈值
+- **当** 调用 `quantizeFloydSteinberg(rgba, w, h, 50000)`
+- **那么** 大部分像素跳过误差扩散，退化为接近最近邻量化的效果
+
 ### 需求:阈值常量导出
 量化引擎必须导出 `DITHER_THRESHOLD_SQ` 命名常量，默认值为 `24000`。该常量定义 FS 抖动的阈值保护边界（RGB 欧氏距离平方）。
 
@@ -92,7 +116,20 @@
 - **那么** 返回的 `palIdx` 必须与 `nearestPaletteIndex` 对相同输入的返回值一致
 
 ### 需求:灰色像素预处理
-量化引擎必须在 Floyd-Steinberg 抖动**之前**对灰色像素进行二值化预处理。当像素的 RGB 通道极差（max - min）≤ `GRAY_SPREAD_THRESHOLD`（默认 40）时，判定为无色相灰色像素，按平均亮度二值化为纯黑 (0,0,0) 或纯白 (255,255,255)（亮度阈值 `GRAY_LUMINANCE_MIDPOINT` = 128）。
+量化引擎必须在 Floyd-Steinberg 抖动**之前**对灰色像素进行二值化预处理。灰色判定和二值化的阈值必须通过可选参数传入。
+
+函数签名：
+```typescript
+preprocessGrayPixels(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+  graySpread?: number,          // 可选参数，默认 GRAY_SPREAD_THRESHOLD
+  grayLuminanceMidpoint?: number // 可选参数，默认 GRAY_LUMINANCE_MIDPOINT
+): Uint8Array
+```
+
+当像素的 RGB 通道极差（max - min）≤ `GRAY_SPREAD_THRESHOLD`（默认 40）时，判定为无色相灰色像素，按平均亮度二值化为纯黑 (0,0,0) 或纯白 (255,255,255)（亮度阈值 `GRAY_LUMINANCE_MIDPOINT` = 128）。
 
 此预处理消除 Chromium 渲染中文字体时产生的灰色反锯齿边缘像素，是消除文字杂色的核心手段。
 
@@ -107,6 +144,18 @@
 #### 场景:有色相像素不受影响
 - **当** 输入像素为 (255, 0, 0)（纯红）
 - **那么** spread = 255 > 40，保持不变
+
+#### 场景:未传参数时使用默认值
+- **当** 调用 `preprocessGrayPixels(rgba, w, h)` 不传额外参数
+- **那么** 行为与修改前完全一致，使用 `GRAY_SPREAD_THRESHOLD = 40` 和 `GRAY_LUMINANCE_MIDPOINT = 128`
+
+#### 场景:传入自定义灰色极差
+- **当** 调用 `preprocessGrayPixels(rgba, w, h, 80, 128)`
+- **那么** 通道极差 ≤ 80 的像素被判定为灰色并二值化（比默认 40 更宽松）
+
+#### 场景:传入 0 禁用灰色预处理
+- **当** 调用 `preprocessGrayPixels(rgba, w, h, 0, 128)`
+- **那么** 只有完全无色差（R=G=B）的像素被二值化，实质上接近禁用预处理
 
 ### 需求:阈值保护与灰色预处理单元测试
 量化引擎必须包含以下测试用例：
