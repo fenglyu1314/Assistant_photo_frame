@@ -2,9 +2,14 @@ import { describe, it, expect } from 'vitest'
 import {
   colorDistanceSq,
   nearestPaletteIndex,
+  nearestPaletteIndexWithDist,
   quantizeNearest,
   quantizeFloydSteinberg,
   enhanceSaturation,
+  preprocessGrayPixels,
+  DITHER_THRESHOLD_SQ,
+  GRAY_SPREAD_THRESHOLD,
+  GRAY_LUMINANCE_MIDPOINT,
 } from '../quantizer'
 import { EPD_PALETTE } from '../palette'
 
@@ -89,6 +94,58 @@ describe('nearestPaletteIndex', () => {
     // Distance to WHITE: 3 × 127² = 48387
     // Distance to BLACK: 3 × 128² = 49152
     expect(nearestPaletteIndex(128, 128, 128)).toBe(1) // WHITE
+  })
+})
+
+// ===========================================================================
+// nearestPaletteIndexWithDist
+// ===========================================================================
+
+describe('nearestPaletteIndexWithDist', () => {
+  it('returns distSq=0 for pure BLACK', () => {
+    const result = nearestPaletteIndexWithDist(0, 0, 0)
+    expect(result.palIdx).toBe(0)
+    expect(result.distSq).toBe(0)
+  })
+
+  it('returns distSq=0 for pure WHITE', () => {
+    const result = nearestPaletteIndexWithDist(255, 255, 255)
+    expect(result.palIdx).toBe(1)
+    expect(result.distSq).toBe(0)
+  })
+
+  it('returns distSq=0 for pure RED', () => {
+    const result = nearestPaletteIndexWithDist(255, 0, 0)
+    expect(result.palIdx).toBe(3)
+    expect(result.distSq).toBe(0)
+  })
+
+  it('returns correct distSq for near-black (20,20,20)', () => {
+    const result = nearestPaletteIndexWithDist(20, 20, 20)
+    expect(result.palIdx).toBe(0) // BLACK
+    expect(result.distSq).toBe(20 * 20 + 20 * 20 + 20 * 20) // 1200
+  })
+
+  it('is consistent with nearestPaletteIndex', () => {
+    const testColors = [
+      [0, 0, 0], [255, 255, 255], [128, 128, 128],
+      [200, 50, 30], [10, 200, 100], [50, 50, 200],
+    ]
+    for (const [r, g, b] of testColors) {
+      const idx = nearestPaletteIndex(r, g, b)
+      const result = nearestPaletteIndexWithDist(r, g, b)
+      expect(result.palIdx).toBe(idx)
+    }
+  })
+})
+
+// ===========================================================================
+// DITHER_THRESHOLD_SQ constant
+// ===========================================================================
+
+describe('DITHER_THRESHOLD_SQ', () => {
+  it('is exported and equals 24000', () => {
+    expect(DITHER_THRESHOLD_SQ).toBe(24000)
   })
 })
 
@@ -181,6 +238,165 @@ describe('quantizeFloydSteinberg', () => {
     for (const v of result) {
       expect(v).not.toBe(4)
     }
+  })
+
+  // --- Threshold protection tests ---
+
+  it('maps near-black (20,20,20) to all BLACK(0) — no colored artifacts', () => {
+    const rgba = solidRGBA(8, 8, 20, 20, 20)
+    const result = quantizeFloydSteinberg(rgba, 8, 8)
+    for (const v of result) {
+      expect(v).toBe(0) // BLACK — threshold protection prevents error diffusion
+    }
+  })
+
+  it('maps near-white (240,240,240) to all WHITE(1) — no colored artifacts', () => {
+    const rgba = solidRGBA(8, 8, 240, 240, 240)
+    const result = quantizeFloydSteinberg(rgba, 8, 8)
+    for (const v of result) {
+      expect(v).toBe(1) // WHITE — threshold protection prevents error diffusion
+    }
+  })
+
+  it('mid-gray (128,128,128) still dithers normally despite threshold', () => {
+    // 128,128,128 → distSq to WHITE = 48387 >> 24000, should NOT be skipped
+    const rgba = solidRGBA(16, 16, 128, 128, 128)
+    const result = quantizeFloydSteinberg(rgba, 16, 16)
+
+    const uniqueColors = new Set<number>()
+    for (const v of result) {
+      uniqueColors.add(v)
+    }
+    // Must have at least 2 distinct colors → normal dithering still works
+    expect(uniqueColors.size).toBeGreaterThanOrEqual(2)
+  })
+})
+
+// ===========================================================================
+// preprocessGrayPixels
+// ===========================================================================
+
+describe('preprocessGrayPixels', () => {
+  it('exports GRAY_SPREAD_THRESHOLD = 40', () => {
+    expect(GRAY_SPREAD_THRESHOLD).toBe(40)
+  })
+
+  it('exports GRAY_LUMINANCE_MIDPOINT = 128', () => {
+    expect(GRAY_LUMINANCE_MIDPOINT).toBe(128)
+  })
+
+  it('binarizes dark gray (50,50,50) to BLACK (0,0,0)', () => {
+    const rgba = solidRGBA(1, 1, 50, 50, 50)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(0)
+    expect(rgba[1]).toBe(0)
+    expect(rgba[2]).toBe(0)
+  })
+
+  it('binarizes light gray (200,200,200) to WHITE (255,255,255)', () => {
+    const rgba = solidRGBA(1, 1, 200, 200, 200)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(255)
+    expect(rgba[1]).toBe(255)
+    expect(rgba[2]).toBe(255)
+  })
+
+  it('binarizes AA gray (80,80,80) to BLACK — simulates text edge', () => {
+    const rgba = solidRGBA(1, 1, 80, 80, 80)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(0)
+    expect(rgba[1]).toBe(0)
+    expect(rgba[2]).toBe(0)
+  })
+
+  it('binarizes AA gray (180,180,180) to WHITE — simulates text edge', () => {
+    const rgba = solidRGBA(1, 1, 180, 180, 180)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(255)
+    expect(rgba[1]).toBe(255)
+    expect(rgba[2]).toBe(255)
+  })
+
+  it('leaves pure BLACK unchanged', () => {
+    const rgba = solidRGBA(1, 1, 0, 0, 0)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(0)
+    expect(rgba[1]).toBe(0)
+    expect(rgba[2]).toBe(0)
+  })
+
+  it('leaves pure WHITE unchanged', () => {
+    const rgba = solidRGBA(1, 1, 255, 255, 255)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(255)
+    expect(rgba[1]).toBe(255)
+    expect(rgba[2]).toBe(255)
+  })
+
+  it('leaves chromatic pixels unchanged — pure RED', () => {
+    const rgba = solidRGBA(1, 1, 255, 0, 0)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(255)
+    expect(rgba[1]).toBe(0)
+    expect(rgba[2]).toBe(0)
+  })
+
+  it('leaves chromatic pixels unchanged — saturated color', () => {
+    const rgba = solidRGBA(1, 1, 200, 50, 30)
+    preprocessGrayPixels(rgba, 1, 1)
+    // spread = 200 - 30 = 170 >> 40, so not touched
+    expect(rgba[0]).toBe(200)
+    expect(rgba[1]).toBe(50)
+    expect(rgba[2]).toBe(30)
+  })
+
+  it('handles near-gray with slight tint within threshold', () => {
+    // (120, 130, 140) → spread = 20 ≤ 40, avg = 130 → WHITE
+    const rgba = solidRGBA(1, 1, 120, 130, 140)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(255)
+    expect(rgba[1]).toBe(255)
+    expect(rgba[2]).toBe(255)
+  })
+
+  it('does NOT binarize when spread > GRAY_SPREAD_THRESHOLD', () => {
+    // (100, 100, 150) → spread = 50 > 40, not touched
+    const rgba = solidRGBA(1, 1, 100, 100, 150)
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[0]).toBe(100)
+    expect(rgba[1]).toBe(100)
+    expect(rgba[2]).toBe(150)
+  })
+
+  it('preserves alpha channel', () => {
+    const rgba = new Uint8Array([80, 80, 80, 128])
+    preprocessGrayPixels(rgba, 1, 1)
+    expect(rgba[3]).toBe(128) // alpha untouched
+  })
+
+  it('works on multi-pixel images — mixed gray and chromatic', () => {
+    const rgba = new Uint8Array([
+      50, 50, 50, 255,       // gray → BLACK
+      200, 200, 200, 255,    // gray → WHITE
+      255, 0, 0, 255,        // RED → unchanged
+      100, 100, 100, 255,    // gray → BLACK (avg=100 < 128)
+    ])
+    preprocessGrayPixels(rgba, 2, 2)
+
+    // Pixel 0: BLACK
+    expect(rgba[0]).toBe(0); expect(rgba[1]).toBe(0); expect(rgba[2]).toBe(0)
+    // Pixel 1: WHITE
+    expect(rgba[4]).toBe(255); expect(rgba[5]).toBe(255); expect(rgba[6]).toBe(255)
+    // Pixel 2: RED (unchanged)
+    expect(rgba[8]).toBe(255); expect(rgba[9]).toBe(0); expect(rgba[10]).toBe(0)
+    // Pixel 3: BLACK
+    expect(rgba[12]).toBe(0); expect(rgba[13]).toBe(0); expect(rgba[14]).toBe(0)
+  })
+
+  it('returns the same Uint8Array reference (in-place modification)', () => {
+    const rgba = solidRGBA(2, 2, 100, 100, 100)
+    const result = preprocessGrayPixels(rgba, 2, 2)
+    expect(result).toBe(rgba) // same reference
   })
 })
 

@@ -13,6 +13,24 @@
 import { EPD_PALETTE, type RGB } from './palette'
 
 // ---------------------------------------------------------------------------
+// Dither threshold constant
+// ---------------------------------------------------------------------------
+
+/**
+ * RGB Euclidean distance squared threshold for dither bypass.
+ * When a pixel's distSq to its nearest palette color is below this value,
+ * the pixel is directly mapped without Floyd-Steinberg error diffusion.
+ *
+ * Value 24000 ≈ ±89 per channel tolerance (√(24000/3) ≈ 89.4).
+ * This high threshold is necessary because Chromium renders Chinese text
+ * with anti-aliasing gray pixels (e.g. 80,80,80 or 200,200,200) even with
+ * -webkit-font-smoothing: none. These AA pixels have distSq ~9000-20000
+ * to the nearest palette color and MUST be snapped without error diffusion
+ * to prevent colored artifacts on text edges.
+ */
+export const DITHER_THRESHOLD_SQ = 24000
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
@@ -58,6 +76,97 @@ export function nearestPaletteIndex(r: number, g: number, b: number): number {
     }
   }
   return bestIdx
+}
+
+/**
+ * Return both the nearest palette index AND the squared distance.
+ * Used by Floyd-Steinberg dithering to decide whether to skip error diffusion.
+ */
+export function nearestPaletteIndexWithDist(
+  r: number, g: number, b: number,
+): { palIdx: number; distSq: number } {
+  let bestIdx = 0
+  let bestDist = Infinity
+  for (const [idx, pr, pg, pb] of VALID_COLORS) {
+    const d = colorDistanceSq(r, g, b, pr, pg, pb)
+    if (d < bestDist) {
+      bestDist = d
+      bestIdx = idx
+    }
+  }
+  return { palIdx: bestIdx, distSq: bestDist }
+}
+
+// ---------------------------------------------------------------------------
+// Gray pixel preprocessing
+// ---------------------------------------------------------------------------
+
+/**
+ * Maximum per-channel spread (max(r,g,b) - min(r,g,b)) to classify a pixel
+ * as "achromatic" / gray. Pixels with spread ≤ this value are considered
+ * gray and will be binarized to pure BLACK or WHITE before dithering.
+ *
+ * This eliminates anti-aliasing gray fringe pixels that Chromium generates
+ * around Chinese text, which are the primary source of colored artifacts
+ * after Floyd-Steinberg error diffusion.
+ */
+export const GRAY_SPREAD_THRESHOLD = 40
+
+/**
+ * Luminance threshold for black/white binarization of gray pixels.
+ * Gray pixels with average luminance < this value → BLACK (0,0,0),
+ * otherwise → WHITE (255,255,255).
+ */
+export const GRAY_LUMINANCE_MIDPOINT = 128
+
+/**
+ * Pre-process RGBA image: binarize achromatic (gray) pixels to pure
+ * BLACK or WHITE. Chromatic pixels pass through unchanged.
+ *
+ * A pixel is considered achromatic when max(R,G,B) - min(R,G,B) ≤ GRAY_SPREAD_THRESHOLD.
+ *
+ * This step runs BEFORE Floyd-Steinberg dithering to eliminate the gray
+ * anti-aliasing fringe around text that causes colored noise artifacts.
+ *
+ * @param rgba   RGBA pixel data (modified in-place)
+ * @param width  Image width
+ * @param height Image height
+ * @returns The same Uint8Array (modified in-place for zero-copy performance)
+ */
+export function preprocessGrayPixels(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  const total = width * height
+  for (let i = 0; i < total; i++) {
+    const off = i * 4
+    const r = rgba[off]
+    const g = rgba[off + 1]
+    const b = rgba[off + 2]
+
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    const spread = max - min
+
+    // Only binarize achromatic (gray) pixels
+    if (spread <= GRAY_SPREAD_THRESHOLD) {
+      const avg = (r + g + b) / 3
+      if (avg < GRAY_LUMINANCE_MIDPOINT) {
+        // → BLACK
+        rgba[off] = 0
+        rgba[off + 1] = 0
+        rgba[off + 2] = 0
+      } else {
+        // → WHITE
+        rgba[off] = 255
+        rgba[off + 1] = 255
+        rgba[off + 2] = 255
+      }
+    }
+    // Chromatic pixels: leave unchanged
+  }
+  return rgba
 }
 
 // ---------------------------------------------------------------------------
@@ -136,9 +245,15 @@ export function quantizeFloydSteinberg(
       const cg = Math.round(clamp255(buf[off + 1]))
       const cb = Math.round(clamp255(buf[off + 2]))
 
-      // Find nearest palette color
-      const palIdx = nearestPaletteIndex(cr, cg, cb)
+      // Find nearest palette color (with distance for threshold check)
+      const { palIdx, distSq } = nearestPaletteIndexWithDist(cr, cg, cb)
       indices[idx] = palIdx
+
+      // Threshold protection: if pixel is close enough to a palette color,
+      // skip error diffusion to avoid colored artifacts on text edges.
+      if (distSq < DITHER_THRESHOLD_SQ) {
+        continue
+      }
 
       const palColor = EPD_PALETTE[palIdx] as RGB
 

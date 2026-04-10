@@ -110,7 +110,9 @@ export class OffscreenRenderer {
           console.warn(
             `[OffscreenRenderer] DPR scaling detected (${scaleX}x), resizing ${size.width}×${size.height} → ${RENDER_WIDTH}×${RENDER_HEIGHT}`
           )
-          image = image.resize({ width: RENDER_WIDTH, height: RENDER_HEIGHT })
+          // Use 'good' quality (lowest) to minimize interpolation artifacts
+          // that introduce gray intermediate pixels around text edges.
+          image = image.resize({ width: RENDER_WIDTH, height: RENDER_HEIGHT, quality: 'good' })
           size = image.getSize()
         } else {
           return {

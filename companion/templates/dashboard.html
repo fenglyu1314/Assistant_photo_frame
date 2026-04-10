@@ -209,9 +209,10 @@
     .event-dot {
       width: 8px;
       height: 8px;
-      border-radius: 50%;
       background: var(--epd-red);
       flex-shrink: 0;
+      /* Diamond shape: avoids AA gray pixels from border-radius on small elements */
+      transform: rotate(45deg);
     }
 
     .event-date-badge {

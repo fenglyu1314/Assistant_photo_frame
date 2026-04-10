@@ -14,7 +14,7 @@ import { EventEmitter } from 'events'
 import { DataManager } from '../data/data-manager'
 import { OffscreenRenderer } from '../renderer/offscreen'
 import { SerialManager, type TransferProgress } from '../serial/serial-manager'
-import { enhanceSaturation, quantizeFloydSteinberg } from '@core/quantizer'
+import { enhanceSaturation, preprocessGrayPixels, quantizeFloydSteinberg } from '@core/quantizer'
 import { encodeToPhysicalBuffer } from '@core/buffer-encoder'
 import { EPD_LOGICAL_W, EPD_LOGICAL_H } from '@core/palette'
 
@@ -62,6 +62,7 @@ const STAGES = {
   COLLECTING: { stage: 'collecting', message: '正在收集数据...' },
   RENDERING: { stage: 'rendering', message: '正在渲染模板...' },
   ENHANCING: { stage: 'enhancing', message: '正在增强饱和度...' },
+  PREPROCESSING: { stage: 'preprocessing', message: '正在预处理灰色像素...' },
   QUANTIZING: { stage: 'quantizing', message: '正在量化为6色...' },
   ENCODING: { stage: 'encoding', message: '正在编码缓冲区...' },
   SENDING: { stage: 'sending', message: '正在发送到墨水屏...' },
@@ -125,6 +126,10 @@ export class RenderPipeline extends EventEmitter {
       // Stage 3: Enhance saturation
       this.emitStage(STAGES.ENHANCING)
       const enhanced = enhanceSaturation(rgba, EPD_LOGICAL_W, EPD_LOGICAL_H)
+
+      // Stage 3.5: Preprocess gray pixels (binarize AA fringe to B/W)
+      this.emitStage(STAGES.PREPROCESSING)
+      preprocessGrayPixels(enhanced, EPD_LOGICAL_W, EPD_LOGICAL_H)
 
       // Stage 4: Floyd-Steinberg quantization
       this.emitStage(STAGES.QUANTIZING)
