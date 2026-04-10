@@ -17,6 +17,8 @@ import { SerialManager, type TransferProgress } from '../serial/serial-manager'
 import { enhanceSaturation, preprocessGrayPixels, quantizeFloydSteinberg } from '@core/quantizer'
 import { encodeToPhysicalBuffer } from '@core/buffer-encoder'
 import { EPD_LOGICAL_W, EPD_LOGICAL_H } from '@core/palette'
+import { indicesToDataUrl, type ColorStats } from '@core/quantized-preview'
+import { type QuantizationParams, DEFAULT_QUANTIZATION_PARAMS } from '@core/quantization-params'
 
 // ============================================================================
 // Types
@@ -34,6 +36,8 @@ export interface PreviewResult {
   error?: string
   durationMs?: number
   previewDataUrl?: string  // PNG data URL for UI preview
+  quantizedDataUrl?: string  // PNG data URL of quantized effect
+  colorStats?: ColorStats  // 6-color usage statistics
 }
 
 export interface SyncResult {
@@ -47,6 +51,7 @@ export interface PipelineStatus {
   lastRun?: string      // ISO timestamp
   lastError?: string
   hasCache: boolean      // Whether a cached frame buffer is available for sync
+  hasRgbaCache: boolean  // Whether cached RGBA data is available for requantize
 }
 
 export interface StageProgress {
@@ -81,6 +86,7 @@ export class RenderPipeline extends EventEmitter {
   private lastRun?: string
   private lastError?: string
   private cachedBuffer: Buffer | null = null
+  private cachedRgba: Uint8Array | null = null
 
   constructor(
     dataManager: DataManager,
@@ -96,8 +102,9 @@ export class RenderPipeline extends EventEmitter {
   /**
    * Render preview only (Stage 1-5).
    * Caches the encoded buffer and preview image for later sync.
+   * Optionally accepts quantization parameters; defaults used when omitted.
    */
-  async renderPreview(): Promise<PreviewResult> {
+  async renderPreview(params?: QuantizationParams): Promise<PreviewResult> {
     // Concurrency guard
     if (this.running) {
       return { success: false, error: 'Pipeline already running' }
@@ -105,6 +112,7 @@ export class RenderPipeline extends EventEmitter {
 
     this.running = true
     const startTime = Date.now()
+    const qp = params ?? DEFAULT_QUANTIZATION_PARAMS
 
     try {
       // Stage 1: Collect data
@@ -123,17 +131,23 @@ export class RenderPipeline extends EventEmitter {
       const rgba = renderResult.rgba
       const previewDataUrl = renderResult.previewDataUrl
 
-      // Stage 3: Enhance saturation
+      // Cache raw RGBA for fast requantize()
+      this.cachedRgba = new Uint8Array(rgba)
+
+      // Stage 3: Enhance saturation (with param)
       this.emitStage(STAGES.ENHANCING)
-      const enhanced = enhanceSaturation(rgba, EPD_LOGICAL_W, EPD_LOGICAL_H)
+      const enhanced = enhanceSaturation(rgba, EPD_LOGICAL_W, EPD_LOGICAL_H, qp.saturationFactor)
 
-      // Stage 3.5: Preprocess gray pixels (binarize AA fringe to B/W)
+      // Stage 3.5: Preprocess gray pixels (with params)
       this.emitStage(STAGES.PREPROCESSING)
-      preprocessGrayPixels(enhanced, EPD_LOGICAL_W, EPD_LOGICAL_H)
+      preprocessGrayPixels(enhanced, EPD_LOGICAL_W, EPD_LOGICAL_H, qp.graySpread, qp.grayLuminanceMidpoint)
 
-      // Stage 4: Floyd-Steinberg quantization
+      // Stage 4: Floyd-Steinberg quantization (with param)
       this.emitStage(STAGES.QUANTIZING)
-      const indices = quantizeFloydSteinberg(enhanced, EPD_LOGICAL_W, EPD_LOGICAL_H)
+      const indices = quantizeFloydSteinberg(enhanced, EPD_LOGICAL_W, EPD_LOGICAL_H, qp.ditherThreshold)
+
+      // Stage 4.5: Generate quantized preview image (indices → RGBA → PNG)
+      const quantizedResult = indicesToDataUrl(indices, EPD_LOGICAL_W, EPD_LOGICAL_H)
 
       // Stage 5: Encode to physical buffer
       this.emitStage(STAGES.ENCODING)
@@ -148,10 +162,80 @@ export class RenderPipeline extends EventEmitter {
       this.lastRun = new Date().toISOString()
       this.lastError = undefined
 
-      return { success: true, durationMs, previewDataUrl }
+      return {
+        success: true,
+        durationMs,
+        previewDataUrl,
+        quantizedDataUrl: quantizedResult.dataUrl,
+        colorStats: quantizedResult.colorStats,
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       const error = `预览渲染异常: ${message}`
+      this.lastError = error
+      return { success: false, error }
+    } finally {
+      this.running = false
+    }
+  }
+
+  /**
+   * Fast re-quantize using cached RGBA data (Stage 3-5 only).
+   * Skips data collection (Stage 1) and template rendering (Stage 2).
+   * Must call renderPreview() first to populate the RGBA cache.
+   */
+  async requantize(params: QuantizationParams): Promise<PreviewResult> {
+    // Check RGBA cache
+    if (!this.cachedRgba) {
+      return { success: false, error: '没有缓存的RGBA数据，请先刷新预览' }
+    }
+
+    // Concurrency guard
+    if (this.running) {
+      return { success: false, error: 'Pipeline already running' }
+    }
+
+    this.running = true
+    const startTime = Date.now()
+
+    try {
+      // Work on a copy of the cached RGBA (preprocessing modifies in-place)
+      const rgba = new Uint8Array(this.cachedRgba)
+
+      // Stage 3: Enhance saturation (with param)
+      this.emitStage(STAGES.ENHANCING)
+      const enhanced = enhanceSaturation(rgba, EPD_LOGICAL_W, EPD_LOGICAL_H, params.saturationFactor)
+
+      // Stage 3.5: Preprocess gray pixels (with params)
+      this.emitStage(STAGES.PREPROCESSING)
+      preprocessGrayPixels(enhanced, EPD_LOGICAL_W, EPD_LOGICAL_H, params.graySpread, params.grayLuminanceMidpoint)
+
+      // Stage 4: Floyd-Steinberg quantization (with param)
+      this.emitStage(STAGES.QUANTIZING)
+      const indices = quantizeFloydSteinberg(enhanced, EPD_LOGICAL_W, EPD_LOGICAL_H, params.ditherThreshold)
+
+      // Stage 4.5: Generate quantized preview image
+      const quantizedResult = indicesToDataUrl(indices, EPD_LOGICAL_W, EPD_LOGICAL_H)
+
+      // Stage 5: Encode to physical buffer
+      this.emitStage(STAGES.ENCODING)
+      const buffer = encodeToPhysicalBuffer(indices)
+
+      // Update cached frame buffer so syncToDevice() uses the latest result
+      this.cachedBuffer = Buffer.from(buffer)
+
+      this.emitStage(STAGES.DONE)
+      const durationMs = Date.now() - startTime
+
+      return {
+        success: true,
+        durationMs,
+        quantizedDataUrl: quantizedResult.dataUrl,
+        colorStats: quantizedResult.colorStats,
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const error = `重量化异常: ${message}`
       this.lastError = error
       return { success: false, error }
     } finally {
@@ -255,7 +339,8 @@ export class RenderPipeline extends EventEmitter {
       running: this.running,
       lastRun: this.lastRun,
       lastError: this.lastError,
-      hasCache: this.cachedBuffer !== null
+      hasCache: this.cachedBuffer !== null,
+      hasRgbaCache: this.cachedRgba !== null,
     }
   }
 

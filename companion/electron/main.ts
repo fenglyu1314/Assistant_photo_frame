@@ -8,6 +8,7 @@ import { DataManager } from './data/data-manager'
 import { WeatherApi } from './data/weather-api'
 import { OffscreenRenderer } from './renderer/offscreen'
 import { RenderPipeline, type StageProgress } from './pipeline/render-pipeline'
+import { type QuantizationParams } from '@core/quantization-params'
 
 // Global error handlers — prevent uncaught errors from crashing the app
 process.on('uncaughtException', (err) => {
@@ -357,6 +358,17 @@ function setupPipelineIPC(): void {
       return { success: false, error: 'Pipeline not initialized' }
     }
     return renderPipeline.syncToDevice()
+  })
+
+  // Phase 10: 快速重量化通道
+  ipcMain.handle('pipeline:requantize', async (_event, args: { params: QuantizationParams }) => {
+    if (!renderPipeline) {
+      return { success: false, error: 'Pipeline not initialized' }
+    }
+    if (!args?.params) {
+      return { success: false, error: 'Missing quantization params' }
+    }
+    return renderPipeline.requantize(args.params)
   })
 }
 

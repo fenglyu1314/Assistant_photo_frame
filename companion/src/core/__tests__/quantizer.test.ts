@@ -469,3 +469,87 @@ describe('enhanceSaturation', () => {
     expect(result).toHaveLength(48)  // 3 × 4 × 4
   })
 })
+
+// ===========================================================================
+// Optional parameter extensions (Task 8.4)
+// ===========================================================================
+
+describe('quantizeFloydSteinberg — optional ditherThreshold', () => {
+  it('without threshold parameter, behaves identically to default', () => {
+    const rgba = solidRGBA(4, 4, 100, 80, 60)
+    const resultNoArg = quantizeFloydSteinberg(rgba.slice(), 4, 4)
+    const resultDefault = quantizeFloydSteinberg(rgba.slice(), 4, 4, DITHER_THRESHOLD_SQ)
+    expect(Array.from(resultNoArg)).toEqual(Array.from(resultDefault))
+  })
+
+  it('threshold=0 disables dither bypass — all pixels diffuse error', () => {
+    // A mid-gray that normally sits within the dither threshold for WHITE/BLACK
+    // With threshold=0, every pixel should diffuse errors
+    const rgba = solidRGBA(4, 4, 100, 80, 60)
+    const resultDefault = quantizeFloydSteinberg(rgba.slice(), 4, 4)
+    const resultNoDither = quantizeFloydSteinberg(rgba.slice(), 4, 4, 0)
+    // They may or may not differ depending on pixel values, but the function should
+    // accept the parameter without error
+    expect(resultNoDither).toHaveLength(16)
+    // With threshold=0, more error diffusion happens, which MAY produce different results
+    // (depending on input). The key contract: it runs without error and returns valid indices.
+    for (let i = 0; i < 16; i++) {
+      const idx = resultNoDither[i]
+      // All indices should be valid palette entries (0,1,2,3,5,6 — not 4)
+      expect([0, 1, 2, 3, 5, 6]).toContain(idx)
+    }
+  })
+
+  it('high threshold approaches nearest-neighbor behavior', () => {
+    const rgba = solidRGBA(2, 2, 200, 50, 50)
+    const resultHigh = quantizeFloydSteinberg(rgba.slice(), 2, 2, 999999)
+    const nearest = quantizeNearest(rgba, 2, 2)
+    // With extremely high threshold, all pixels skip error diffusion → same as nearest
+    expect(Array.from(resultHigh)).toEqual(Array.from(nearest))
+  })
+})
+
+describe('preprocessGrayPixels — optional graySpread and grayLuminanceMidpoint', () => {
+  it('without optional params, behaves identically to default', () => {
+    const rgba1 = solidRGBA(2, 2, 80, 80, 80)
+    const rgba2 = solidRGBA(2, 2, 80, 80, 80)
+    preprocessGrayPixels(rgba1, 2, 2)
+    preprocessGrayPixels(rgba2, 2, 2, GRAY_SPREAD_THRESHOLD, GRAY_LUMINANCE_MIDPOINT)
+    expect(Array.from(rgba1)).toEqual(Array.from(rgba2))
+  })
+
+  it('graySpread=80 treats wider spread pixels as gray', () => {
+    // (100, 100, 150) → spread=50, default threshold=40 → NOT gray
+    // With graySpread=80 → spread ≤ 80 → IS gray, avg=116.7 < 128 → BLACK
+    const rgba = solidRGBA(1, 1, 100, 100, 150)
+    preprocessGrayPixels(rgba, 1, 1, 80, 128)
+    expect(rgba[0]).toBe(0)
+    expect(rgba[1]).toBe(0)
+    expect(rgba[2]).toBe(0)
+  })
+
+  it('graySpread=0 only binarizes perfectly achromatic pixels', () => {
+    // (80, 80, 80) → spread=0 ≤ 0 → gray → avg=80 < 128 → BLACK
+    const rgba1 = solidRGBA(1, 1, 80, 80, 80)
+    preprocessGrayPixels(rgba1, 1, 1, 0, 128)
+    expect(rgba1[0]).toBe(0)
+
+    // (80, 80, 81) → spread=1 > 0 → NOT gray → unchanged
+    const rgba2 = new Uint8Array([80, 80, 81, 255])
+    preprocessGrayPixels(rgba2, 1, 1, 0, 128)
+    expect(rgba2[0]).toBe(80)
+    expect(rgba2[1]).toBe(80)
+    expect(rgba2[2]).toBe(81)
+  })
+
+  it('custom grayLuminanceMidpoint changes binarization split', () => {
+    // (80, 80, 80) → avg=80
+    // Default midpoint=128 → 80 < 128 → BLACK
+    // Custom midpoint=60 → 80 >= 60 → WHITE
+    const rgba = solidRGBA(1, 1, 80, 80, 80)
+    preprocessGrayPixels(rgba, 1, 1, 40, 60)
+    expect(rgba[0]).toBe(255)
+    expect(rgba[1]).toBe(255)
+    expect(rgba[2]).toBe(255)
+  })
+})

@@ -137,7 +137,11 @@ export function preprocessGrayPixels(
   rgba: Uint8Array,
   width: number,
   height: number,
+  graySpread?: number,
+  grayLuminanceMidpoint?: number,
 ): Uint8Array {
+  const spreadThreshold = graySpread ?? GRAY_SPREAD_THRESHOLD
+  const lumMidpoint = grayLuminanceMidpoint ?? GRAY_LUMINANCE_MIDPOINT
   const total = width * height
   for (let i = 0; i < total; i++) {
     const off = i * 4
@@ -150,9 +154,9 @@ export function preprocessGrayPixels(
     const spread = max - min
 
     // Only binarize achromatic (gray) pixels
-    if (spread <= GRAY_SPREAD_THRESHOLD) {
+    if (spread <= spreadThreshold) {
       const avg = (r + g + b) / 3
-      if (avg < GRAY_LUMINANCE_MIDPOINT) {
+      if (avg < lumMidpoint) {
         // → BLACK
         rgba[off] = 0
         rgba[off + 1] = 0
@@ -221,7 +225,9 @@ export function quantizeFloydSteinberg(
   rgba: Uint8Array,
   width: number,
   height: number,
+  ditherThreshold?: number,
 ): Uint8Array {
+  const threshold = ditherThreshold ?? DITHER_THRESHOLD_SQ
   const total = width * height
   const indices = new Uint8Array(total)
 
@@ -251,7 +257,7 @@ export function quantizeFloydSteinberg(
 
       // Threshold protection: if pixel is close enough to a palette color,
       // skip error diffusion to avoid colored artifacts on text edges.
-      if (distSq < DITHER_THRESHOLD_SQ) {
+      if (distSq < threshold) {
         continue
       }
 
